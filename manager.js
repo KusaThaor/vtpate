@@ -476,6 +476,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     return 0;
   }
 
+  function getPlaceholderOption() {
+    return (emptyChapterPlaceholderInput ? emptyChapterPlaceholderInput.value.trim() : '') || '<p>pass</p>';
+  }
+
   function getCustomSelectorsFromUI() {
     return {
       storyTitle: selectorStoryTitle?.value.trim() || '',
@@ -3543,7 +3547,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const packerOptions = {
         splitSize: 0,
         customFont: state.customFont && state.customFont.enabled ? state.customFont : null,
-        emptyPlaceholder: getPlaceholderOption()
+        emptyPlaceholder: typeof getPlaceholderOption === 'function' ? getPlaceholderOption() : (emptyChapterPlaceholderInput?.value?.trim() || '<p>pass</p>')
       };
 
       let epubBlob = null;

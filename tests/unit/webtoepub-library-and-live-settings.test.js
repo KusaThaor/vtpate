@@ -217,6 +217,18 @@ async function runTests() {
     console.log('   compareChapters is globally accessible to saveCurrentCrawledToLibrary without ReferenceError!');
   }
 
+  // Test 8: Verify getPlaceholderOption in manager.js is defined and accessible to saveCurrentCrawledToLibrary
+  {
+    console.log('Test 8: Verification of getPlaceholderOption scope in manager.js');
+    const managerCode = fs.readFileSync(path.resolve('manager.js'), 'utf8');
+    assert(managerCode.includes('function getPlaceholderOption('), 'manager.js must define getPlaceholderOption');
+    
+    const placeholderIdx = managerCode.indexOf('function getPlaceholderOption(');
+    const saveIdx = managerCode.indexOf('async function saveCurrentCrawledToLibrary');
+    assert(placeholderIdx > -1 && saveIdx > -1 && placeholderIdx < saveIdx, 'getPlaceholderOption must be declared before saveCurrentCrawledToLibrary');
+    console.log('   getPlaceholderOption is defined and accessible to saveCurrentCrawledToLibrary without ReferenceError!');
+  }
+
   console.log('\nAll WebToEpub temporary library and live settings tests PASSED successfully!\n');
 }
 
