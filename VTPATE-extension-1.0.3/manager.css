@@ -1223,6 +1223,70 @@ body.theme-palette-pastel .setting-switch-card:hover {
   white-space: nowrap;
 }
 
+.chapter-row-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.badge-xs {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* Storage Inventory Item Styling */
+.inventory-chapter-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  margin-bottom: 6px;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  gap: 12px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  list-style: none;
+}
+
+.inventory-chapter-item:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--accent-primary);
+}
+
+body.theme-palette-pastel .inventory-chapter-item {
+  background-color: #ffffff;
+  border-color: #cbd8e8;
+}
+
+body.theme-palette-pastel .inventory-chapter-item:hover {
+  background-color: #f4f8fd;
+}
+
+.inventory-chapter-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inventory-chapter-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 /* Progress & Stats */
 .progress-bar-container {
   width: 100%;

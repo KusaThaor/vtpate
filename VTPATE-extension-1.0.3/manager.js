@@ -180,6 +180,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const rangeFromInput = document.getElementById('range-from');
   const rangeToInput = document.getElementById('range-to');
   const btnApplyRange = document.getElementById('btn-apply-range');
+  const forceOverwriteCheckbox = document.getElementById('force-overwrite-chapters');
   const chapterListContainer = document.getElementById('chapter-list');
 
   // Multi-page Pagination Selectors
@@ -1193,15 +1194,233 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.target.value = '';
   }
 
-  function showChapterInventory(titles, message) {
-    const list = document.getElementById('chapter-inventory');
-    list.replaceChildren();
-    for (const title of titles) {
-      const item = document.createElement('li');
-      item.textContent = title;
-      list.appendChild(item);
+  function updateCrawlButtonState() {
+    if (!btnStart) return;
+    if (state.crawlEngine?.isRunning) {
+      btnStart.disabled = true;
+      return;
     }
-    document.getElementById('chapter-inventory-status').textContent = message;
+    if (!state.chapters || state.chapters.length === 0) {
+      btnStart.disabled = true;
+      btnStart.textContent = 'Bắt đầu tải truyện';
+      return;
+    }
+
+    const forceOverwrite = forceOverwriteCheckbox ? Boolean(forceOverwriteCheckbox.checked) : false;
+    const selectedCount = state.chapters.filter(ch => ch.selected).length;
+    const missingSelected = state.chapters.filter(ch => ch.selected && !state.downloadedChapters.has(ch.chapterNumber)).length;
+    const alreadyDownloadedSelected = selectedCount - missingSelected;
+
+    if (selectedCount > 0) {
+      btnStart.disabled = false;
+      if (forceOverwrite) {
+        btnStart.textContent = `Tải lại / Ghi đè ${selectedCount} chương đã chọn`;
+      } else if (missingSelected > 0 && alreadyDownloadedSelected === 0) {
+        btnStart.textContent = `Tải tiếp ${missingSelected} chương còn thiếu`;
+      } else if (missingSelected === 0 && alreadyDownloadedSelected > 0) {
+        btnStart.textContent = `Tải lại / Ghi đè ${alreadyDownloadedSelected} chương đã chọn`;
+      } else {
+        btnStart.textContent = `Tải ${missingSelected} chương mới + Ghi đè ${alreadyDownloadedSelected} chương`;
+      }
+    } else {
+      const totalMissing = state.chapters.filter(ch => !state.downloadedChapters.has(ch.chapterNumber)).length;
+      btnStart.disabled = false;
+      btnStart.textContent = totalMissing > 0 ? `Bắt đầu tải (${totalMissing} chương chưa tải)` : 'Chọn chương để tải lại';
+    }
+  }
+
+  if (forceOverwriteCheckbox) {
+    forceOverwriteCheckbox.addEventListener('change', updateCrawlButtonState);
+  }
+
+  async function recrawlSingleChapter(chapterNumber) {
+    const num = Number(chapterNumber);
+    let chapterItem = (state.chapters || []).find(c => Number(c.chapterNumber) === num);
+    if (!chapterItem && state.downloadedChapters.has(num)) {
+      const d = state.downloadedChapters.get(num);
+      if (d && d.url) {
+        chapterItem = {
+          id: d.id || `ch-${num}`,
+          chapterNumber: num,
+          title: d.title || `Chương ${num}`,
+          url: d.url,
+          selected: true
+        };
+      }
+    }
+
+    if (!chapterItem) {
+      alert(`Không tìm thấy thông tin URL của Chương #${num} để tải lại từ web.`);
+      return;
+    }
+
+    if (state.crawlEngine?.isRunning) {
+      alert('Tiến trình tải đang chạy. Vui lòng bấm "Tạm dừng" hoặc đợi phiên tải hoàn tất trước khi crawl lại chương lẻ.');
+      return;
+    }
+
+    appendLog(`🔄 Bắt đầu crawl lại riêng Chương #${num}: "${chapterItem.title}"...`, 'info');
+    hideSleepOrErrorAlert();
+    activateManagerTab('download');
+    setStage('CRAWLING');
+
+    const crawlProfile = getCrawlProfile();
+    const singleEngine = new CrawlEngine({
+      profileManager: state.profileManager,
+      onProgress: (p) => {
+        updateRecoveryControls();
+        if (p.currentChapter?.id === 'pause') {
+          appendLog(p.currentChapter.title);
+        } else if (p.currentChapter?.id === 'recheck') {
+          appendLog(p.currentChapter.title, 'warning');
+        }
+      },
+      onChapterComplete: async ({ chapter, result }) => {
+        state.downloadedChapters.set(chapter.chapterNumber, result);
+        state.failedChapters = (state.failedChapters || []).filter((item) => Number(item.chapterNumber ?? item.id) !== Number(chapter.chapterNumber));
+        showDownloadedChapters();
+        renderChapterList();
+        renderFailedTable();
+        await persistCrawlCheckpoint('ready');
+        appendLog(`✅ Crawl lại thành công Chương #${chapter.chapterNumber}: "${chapter.title}"! Đã cập nhật vào sách.`, 'success');
+        alert(`Đã crawl lại thành công Chương #${chapter.chapterNumber} và cập nhật vào bộ nhớ!`);
+      },
+      onError: ({ chapter, error }) => {
+        chapter.attempts = (chapter.attempts || 1) + 1;
+        chapter.error = error || 'Không tải được chương';
+        chapter.timestamp = new Date().toISOString();
+        if (!state.failedChapters.some(f => Number(f.chapterNumber ?? f.id) === Number(chapter.chapterNumber))) {
+          state.failedChapters.push(chapter);
+        }
+        renderFailedTable();
+        renderChapterList();
+        appendLog(`❌ Crawl lại Chương #${chapter.chapterNumber} thất bại: ${error}`, 'error');
+        alert(`Không thể tải lại Chương #${chapter.chapterNumber}: ${error}`);
+      }
+    });
+
+    state.crawlEngine = singleEngine;
+    if (btnStart) btnStart.disabled = true;
+    if (btnPause) btnPause.disabled = true;
+    if (btnStop) btnStop.disabled = false;
+
+    try {
+      await singleEngine.startCrawl({
+        parser: state.currentParser,
+        chapters: [chapterItem],
+        domain: state.currentDomain,
+        profile: crawlProfile
+      });
+    } catch (err) {
+      appendLog(`Lỗi khi crawl lại Chương #${num}: ${err.message}`, 'error');
+    } finally {
+      setStage('IDLE');
+      if (btnStart) btnStart.disabled = false;
+      if (btnStop) btnStop.disabled = true;
+      updateRecoveryControls();
+      updateCrawlButtonState();
+      if (btnExport) btnExport.disabled = state.downloadedChapters.size === 0;
+    }
+  }
+
+  async function deleteDownloadedChapter(chapterNumber) {
+    const num = Number(chapterNumber);
+    if (!state.downloadedChapters.has(num)) {
+      return;
+    }
+    const item = state.downloadedChapters.get(num);
+    const title = item?.title || `Chương ${num}`;
+    if (confirm(`Bạn có chắc muốn xóa Chương #${num} ("${title}") khỏi bộ nhớ đã tải không?\n\nSau khi xóa, chương sẽ được chuyển về trạng thái Chưa tải để bạn có thể tải lại bất kỳ lúc nào.`)) {
+      state.downloadedChapters.delete(num);
+      const ch = (state.chapters || []).find(c => Number(c.chapterNumber) === num);
+      if (ch) ch.selected = true;
+      showDownloadedChapters();
+      renderChapterList();
+      updateCrawlButtonState();
+      await persistCrawlCheckpoint('ready');
+      appendLog(`🗑️ Đã xóa Chương #${num} khỏi bộ nhớ. Đã đánh dấu để bạn tải lại khi cần.`, 'info');
+    }
+  }
+
+  function showChapterInventory(chapters, message) {
+    const list = document.getElementById('chapter-inventory');
+    if (!list) return;
+    list.replaceChildren();
+    const fragment = document.createDocumentFragment();
+
+    function getNum(ch) {
+      if (!ch) return null;
+      if (typeof ch.chapterNumber === 'number' && !isNaN(ch.chapterNumber)) return ch.chapterNumber;
+      const str = String(ch.chapterNumber || ch.title || ch.id || '');
+      const m = str.match(/(?:chuong|chapter|chap|c|phần|part)?\s*(\d+(?:\.\d+)?)/i);
+      return m ? parseFloat(m[1]) : null;
+    }
+
+    for (const item of chapters) {
+      const li = document.createElement('li');
+      li.className = 'inventory-chapter-item';
+
+      const isObj = typeof item === 'object' && item !== null;
+      const num = isObj ? (item.chapterNumber !== undefined ? item.chapterNumber : getNum(item)) : getNum(item);
+      const title = isObj ? (item.title || `Chương ${num}`) : String(item);
+
+      // Compute word and character count stats
+      let statsBadge = '';
+      if (isObj && item.contentHtml) {
+        const textOnly = item.contentHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        const charCount = textOnly.length;
+        const wordCount = textOnly.split(/\s+/).filter(Boolean).length;
+        if (charCount < 50) {
+          statsBadge = `<span class="badge badge-warning badge-xs" title="Chương có thể bị rỗng nội dung!">⚠️ Chỉ ${charCount} ký tự</span>`;
+        } else {
+          statsBadge = `<span class="badge badge-neutral badge-xs">${wordCount.toLocaleString()} từ (${Math.round(charCount / 1024 * 10) / 10} KB)</span>`;
+        }
+      }
+
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'inventory-chapter-title';
+      titleSpan.innerHTML = `<strong>#${num !== null && num !== undefined ? num : '--'}</strong> — ${title} ${statsBadge}`;
+
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'inventory-chapter-actions';
+
+      if (num !== null && num !== undefined) {
+        const btnRecrawl = document.createElement('button');
+        btnRecrawl.type = 'button';
+        btnRecrawl.className = 'btn btn-primary btn-xs';
+        btnRecrawl.title = `Crawl lại riêng Chương #${num}`;
+        btnRecrawl.innerHTML = '<i data-lucide="refresh-cw"></i> Crawl lại';
+        btnRecrawl.addEventListener('click', (e) => {
+          e.preventDefault();
+          recrawlSingleChapter(num);
+        });
+
+        const btnDelete = document.createElement('button');
+        btnDelete.type = 'button';
+        btnDelete.className = 'btn btn-danger btn-xs';
+        btnDelete.title = `Xóa Chương #${num} khỏi bộ nhớ để crawl lại`;
+        btnDelete.innerHTML = '<i data-lucide="trash-2"></i> Xóa';
+        btnDelete.addEventListener('click', (e) => {
+          e.preventDefault();
+          deleteDownloadedChapter(num);
+        });
+
+        actionsDiv.appendChild(btnRecrawl);
+        actionsDiv.appendChild(btnDelete);
+      }
+
+      li.appendChild(titleSpan);
+      li.appendChild(actionsDiv);
+      fragment.appendChild(li);
+    }
+
+    list.appendChild(fragment);
+    if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+      try { lucide.createIcons(); } catch (_) {}
+    }
+
+    const statusEl = document.getElementById('chapter-inventory-status');
+    if (statusEl) statusEl.textContent = message;
   }
 
   function showDownloadedChapters() {
@@ -1248,7 +1467,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (failedList.length > 0) {
       statusMsg += ` (Lưu ý: Có ${failedList.length} chương gặp lỗi chưa tải: #${failedList.map(f => f.chapterNumber).join(', #')}. Khi xuất EPUB hệ thống sẽ tự động chèn giữ chỗ và xếp lại đúng thứ tự liền mạch).`;
     }
-    showChapterInventory(chapters.map(ch => `#${ch.chapterNumber} — ${ch.title || 'Chưa có tiêu đề'}`), statusMsg);
+    showChapterInventory(chapters, statusMsg);
     if (typeof updateCleanerChapterDropdown === 'function') {
       updateCleanerChapterDropdown();
     }
@@ -1599,11 +1818,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderFailedTable();
     showDownloadedChapters();
     const remaining = state.chapters.filter(ch => ch.selected).length;
-    if (btnStart) {
-      btnStart.disabled = state.chapters.every(ch => state.downloadedChapters.has(ch.chapterNumber));
-      btnStart.textContent = remaining ? `Tải tiếp ${remaining} chương còn thiếu` :
-        (btnStart.disabled ? 'Đã tải đủ chương' : 'Chọn chương để tải tiếp');
-    }
+    updateCrawlButtonState();
     if (btnExport) btnExport.disabled = state.downloadedChapters.size === 0;
     if (btnPause) { btnPause.disabled = true; btnPause.textContent = 'Tạm dừng'; }
     if (btnStop) btnStop.disabled = true;
@@ -1876,22 +2091,66 @@ document.addEventListener('DOMContentLoaded', async () => {
       checkbox.checked = Boolean(chapter.selected);
       checkbox.addEventListener('change', (e) => {
         chapter.selected = e.target.checked;
+        updateCrawlButtonState();
       });
+
+      const num = chapter.chapterNumber !== undefined ? chapter.chapterNumber : index + 1;
+      const isDownloaded = state.downloadedChapters.has(num);
+      const isFailed = (state.failedChapters || []).some(f => Number(f.chapterNumber ?? f.id) === Number(num));
 
       const label = document.createElement('label');
       label.htmlFor = `ch-check-${index}`;
       label.className = 'chapter-title-text';
-      label.textContent = `#${chapter.chapterNumber}: ${chapter.title || 'Chương không tên'}`;
+      label.textContent = `#${num}: ${chapter.title || 'Chương không tên'}`;
+
+      const metaDiv = document.createElement('div');
+      metaDiv.className = 'chapter-row-actions';
+
+      const statusBadge = document.createElement('span');
+      if (isDownloaded) {
+        const item = state.downloadedChapters.get(num);
+        let wordStats = '';
+        if (item?.contentHtml) {
+          const w = item.contentHtml.replace(/<[^>]*>/g, ' ').trim().split(/\s+/).filter(Boolean).length;
+          wordStats = ` (${w.toLocaleString()} từ)`;
+        }
+        statusBadge.className = 'badge badge-success badge-xs';
+        statusBadge.textContent = `✓ Đã tải${wordStats}`;
+      } else if (isFailed) {
+        statusBadge.className = 'badge badge-danger badge-xs';
+        statusBadge.textContent = '⚠ Lỗi tải';
+      } else {
+        statusBadge.className = 'badge badge-neutral badge-xs';
+        statusBadge.textContent = 'Chưa tải';
+      }
+      metaDiv.appendChild(statusBadge);
+
+      const btnRecrawl = document.createElement('button');
+      btnRecrawl.type = 'button';
+      btnRecrawl.className = 'btn btn-secondary btn-xs btn-row-recrawl';
+      btnRecrawl.title = `Crawl lại riêng Chương #${num}`;
+      btnRecrawl.innerHTML = '<i data-lucide="refresh-cw"></i> Crawl lại';
+      btnRecrawl.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        recrawlSingleChapter(num);
+      });
+      metaDiv.appendChild(btnRecrawl);
 
       row.appendChild(checkbox);
       row.appendChild(label);
+      row.appendChild(metaDiv);
       fragment.appendChild(row);
     });
 
     chapterListContainer.appendChild(fragment);
+    if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+      try { lucide.createIcons(); } catch (_) {}
+    }
     if (totalChaptersCount) {
       totalChaptersCount.textContent = String(state.chapters.length);
     }
+    updateCrawlButtonState();
   }
 
   async function grabChapterFromActiveTab(item) {
@@ -2066,6 +2325,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         await grabChapterFromActiveTab(item);
       });
       tdAction.appendChild(btnGrabTab);
+
+      const btnRetrySingle = document.createElement('button');
+      btnRetrySingle.type = 'button';
+      btnRetrySingle.className = 'btn btn-secondary btn-sm';
+      btnRetrySingle.style.marginLeft = '5px';
+      btnRetrySingle.innerHTML = '<i data-lucide="refresh-cw"></i> Tải lại';
+      btnRetrySingle.title = `Tải lại riêng Chương #${item.chapterNumber ?? item.id}`;
+      btnRetrySingle.addEventListener('click', async () => {
+        await recrawlSingleChapter(item.chapterNumber ?? item.id);
+      });
+      tdAction.appendChild(btnRetrySingle);
 
       tr.appendChild(tdNum);
       tr.appendChild(tdTitle);
@@ -2608,7 +2878,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const selectedChapters = state.chapters.filter((c) => c.selected && !state.downloadedChapters.has(c.chapterNumber));
+    const forceOverwrite = forceOverwriteCheckbox ? Boolean(forceOverwriteCheckbox.checked) : false;
+    let selectedChapters = [];
+
+    if (forceOverwrite) {
+      selectedChapters = state.chapters.filter((c) => c.selected);
+    } else {
+      const missingSelected = state.chapters.filter((c) => c.selected && !state.downloadedChapters.has(c.chapterNumber));
+      if (missingSelected.length > 0) {
+        selectedChapters = missingSelected;
+      } else {
+        const alreadyDownloadedSelected = state.chapters.filter((c) => c.selected);
+        if (alreadyDownloadedSelected.length > 0) {
+          const chNums = alreadyDownloadedSelected.map(c => `#${c.chapterNumber}`).slice(0, 5).join(', ');
+          const extra = alreadyDownloadedSelected.length > 5 ? ` và ${alreadyDownloadedSelected.length - 5} chương khác` : '';
+          const ok = confirm(`Các chương bạn chọn (${chNums}${extra}) đã có trong bộ nhớ đã lưu.\n\nBạn có muốn CRAWL LẠI và GHI ĐÈ nội dung mới cho các chương này không?`);
+          if (ok) {
+            selectedChapters = alreadyDownloadedSelected;
+          } else {
+            return;
+          }
+        }
+      }
+    }
+
     if (selectedChapters.length === 0) {
       appendLog('Chưa có chương nào được chọn để tải.', 'warning');
       alert('Vui lòng chọn ít nhất một chương để tải.');
@@ -2628,7 +2921,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     setStage('CRAWLING');
     state.isPaused = false;
     state.crawlStartTime = Date.now();
-    state.failedChapters = [];
+    // Keep failed chapters that are not currently being re-crawled
+    state.failedChapters = (state.failedChapters || []).filter(f => !selectedChapters.some(s => Number(s.chapterNumber) === Number(f.chapterNumber)));
     renderFailedTable();
 
     if (btnStart) btnStart.disabled = true;
@@ -2796,6 +3090,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (btnPause) btnPause.disabled = true;
         if (btnQuickAddToLibrary) btnQuickAddToLibrary.style.display = 'none';
         updateRecoveryControls();
+        renderChapterList();
+        updateCrawlButtonState();
         if (btnStop) btnStop.disabled = true;
       }
     } else {
