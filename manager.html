@@ -31,6 +31,7 @@
         </span>
         <div class="theme-selector-box" title="Đổi bảng màu giao diện">
           <label for="themeSelect" class="theme-select-label">
+            <span class="theme-color-indicator" id="themeIndicatorDot" aria-hidden="true"></span>
             <i data-lucide="palette"></i>
             <span class="theme-select-text">Bảng màu:</span>
           </label>
@@ -249,137 +250,214 @@
         <div class="card-header">
           <h2><i data-lucide="sliders"></i> Chế độ tải và thời gian chờ</h2>
         </div>
-        <div class="card-body grid-form">
-          <div class="form-group">
-            <label for="crawl-mode">Chế độ tải</label>
-            <select id="crawl-mode" name="mode" class="form-control">
-              <option value="fetch" selected>Tải trực tiếp (mặc định)</option>
-              <option value="tab">Tải tuần tự qua thẻ trình duyệt</option>
-            </select>
-            <small class="field-hint">Tải trực tiếp có thể gửi nhiều yêu cầu cùng lúc. Tải qua thẻ xử lý từng chương và dùng phiên trình duyệt hiện tại.</small>
+        <div class="card-body settings-card-body">
+          <!-- Phân nhóm 1: Cấu hình tải cơ bản & Luồng kết nối -->
+          <div class="settings-subgroup">
+            <div class="settings-subgroup-header">
+              <span class="settings-subgroup-title">
+                <i data-lucide="cpu"></i> Cấu hình tải và luồng kết nối
+              </span>
+              <span class="settings-subgroup-desc">Chế độ tải, số luồng song song và thời gian chờ tải trang</span>
+            </div>
+
+            <div class="settings-grid settings-grid-4">
+              <div class="form-group">
+                <label for="crawl-mode" class="aligned-label">Chế độ tải</label>
+                <select id="crawl-mode" name="mode" class="form-control">
+                  <option value="fetch" selected>Tải trực tiếp (mặc định)</option>
+                  <option value="tab">Tải tuần tự qua thẻ trình duyệt</option>
+                </select>
+                <small class="field-hint">Tải trực tiếp gửi nhiều yêu cầu cùng lúc. Tải qua thẻ xử lý từng chương theo phiên duyệt web.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="concurrency" class="aligned-label">Số chương tải song song (1–10)</label>
+                <input type="number" id="concurrency" name="concurrency" class="form-control" min="1" max="10" value="4">
+                <small class="field-hint">Áp dụng cho tải trực tiếp. Đặt 1 để xử lý lần lượt từng chương.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="delay" class="aligned-label">Thời gian chờ cơ sở (mili giây)</label>
+                <input type="number" id="delay" name="delay" class="form-control" min="0" max="5000" step="100" value="1000">
+                <small class="field-hint">Khoảng nghỉ trước yêu cầu tải (0–5000 ms). Khi bật dao động, khoảng chờ thực tế sẽ biến thiên an toàn.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="page-load-wait" class="aligned-label">Thời gian chờ trang (mili giây)</label>
+                <input type="number" id="page-load-wait" name="pageLoadWaitMs" class="form-control" min="500" max="10000" step="100" value="2000">
+                <small class="field-hint">Chỉ áp dụng khi tải qua thẻ (500–10.000 ms). Tăng nếu nội dung trang web xuất hiện chậm.</small>
+              </div>
+            </div>
+
+            <div class="settings-inline-toggle">
+              <label for="jitter" class="checkbox-label aligned-checkbox">
+                <input type="checkbox" id="jitter" name="jitter" checked>
+                <span><strong>Cho phép thời gian chờ cơ sở dao động ±30%</strong> (mô phỏng thao tác đọc tự nhiên, tránh bị server chặn IP)</span>
+              </label>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="concurrency">Số chương tải song song (1–10)</label>
-            <input type="number" id="concurrency" name="concurrency" class="form-control" min="1" max="10" value="4">
-            <small class="field-hint">Chỉ áp dụng cho tải trực tiếp. Chọn 1 để xử lý từng chương.</small>
+
+          <!-- Phân nhóm 2: Tốc độ đọc & Thời gian nghỉ thông minh -->
+          <div class="settings-subgroup">
+            <div class="settings-subgroup-header">
+              <span class="settings-subgroup-title">
+                <i data-lucide="clock"></i> Tốc độ đọc &amp; Thời gian nghỉ thông minh (Anti-Ban)
+              </span>
+              <span class="settings-subgroup-desc">Tự động tính khoảng nghỉ theo độ dài từ của từng chương để phòng ngừa tường lửa phát hiện bot</span>
+            </div>
+
+            <div class="settings-banner-toggle">
+              <label for="enable-wpm-delay" class="checkbox-label aligned-checkbox highlight-toggle">
+                <input type="checkbox" id="enable-wpm-delay" name="enableWpmDelay" checked>
+                <span><strong>Bật cơ chế nghỉ theo độ dài chương</strong> (tự động tính thời gian nghỉ dựa trên số từ của chương khi tải qua thẻ)</span>
+              </label>
+            </div>
+
+            <div class="settings-grid settings-grid-3">
+              <div class="form-group">
+                <label for="reading-wpm" class="aligned-label">Tốc độ đọc dùng tính nghỉ (từ/phút)</label>
+                <input type="number" id="reading-wpm" name="readingWpm" class="form-control" min="200" max="1500" step="50" value="650">
+                <small class="field-hint">Ví dụ: 1.300 từ ở 650 từ/phút sẽ nghỉ khoảng 2 phút. Khoảng nghỉ tối thiểu là 15 giây với chương có chữ.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="max-wait-seconds" class="aligned-label">Giới hạn thời gian chờ tối đa (giây)</label>
+                <input type="number" id="max-wait-seconds" name="maxWaitSeconds" class="form-control" min="0" max="600" step="5" value="30">
+                <small class="field-hint">Dù chương có bao nhiêu từ, thời gian chờ cũng không vượt quá số giây này (đặt 30s thay vì phải chờ 500s). Đặt 0 để không giới hạn.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="inter-chapter-delay" class="aligned-label">Thời gian chờ cố định khi tắt WPM (giây)</label>
+                <input type="number" id="inter-chapter-delay" name="interChapterDelaySeconds" class="form-control" min="0" max="300" step="1" value="3">
+                <small class="field-hint">Áp dụng khi tắt "Nghỉ theo độ dài chương". Khoảng cách nghỉ an toàn giữa 2 chương liên tiếp.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="recheck-wait-seconds" class="aligned-label">Chờ tải lại HTML khi trang rỗng (giây)</label>
+                <input type="number" id="recheck-wait-seconds" name="recheckWaitSeconds" class="form-control" min="3" max="60" step="1" value="10">
+                <small class="field-hint">Khi trang web (SPA/Nuxt/Vue) chưa kịp hiển thị nội dung, crawler sẽ tạm dừng số giây này để đợi JavaScript render.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="break-interval" class="aligned-label">Nghỉ dài định kỳ: Sau mỗi (chương)</label>
+                <input type="number" id="break-interval" name="periodicBreakInterval" class="form-control" min="0" max="100" value="10">
+                <small class="field-hint">Tính theo số chương tải thành công qua thẻ. Đặt 0 để tắt nghỉ định kỳ.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="break-seconds" class="aligned-label">Thời gian nghỉ định kỳ (giây)</label>
+                <input type="number" id="break-seconds" name="periodicBreakSeconds" class="form-control" min="0" max="60" value="5">
+                <small class="field-hint">Cộng thêm vào thời gian nghỉ trước khi chuyển sang cào chương tiếp theo.</small>
+              </div>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="delay">Thời gian chờ cơ sở (0–5000 mili giây)</label>
-            <input type="number" id="delay" name="delay" class="form-control" min="0" max="5000" step="100" value="1000">
-            <small class="field-hint">Áp dụng trước yêu cầu tải. Khi bật dao động, khoảng chờ thực tế có thể ngắn hơn giá trị này.</small>
-          </div>
-          <div class="form-group">
-            <label for="page-load-wait">Thời gian chờ trang hiển thị (500–10.000 mili giây)</label>
-            <input type="number" id="page-load-wait" name="pageLoadWaitMs" class="form-control" min="500" max="10000" step="100" value="2000">
-            <small class="field-hint">Chỉ áp dụng cho tải qua thẻ. Tăng nếu nội dung xuất hiện chậm.</small>
-          </div>
-          <div class="form-group">
-            <label for="reading-wpm">Tốc độ đọc dùng để tính thời gian nghỉ (từ/phút)</label>
-            <input type="number" id="reading-wpm" name="readingWpm" class="form-control" min="200" max="1500" step="50" value="650">
-            <small class="field-hint">Ví dụ, 1.300 từ ở 650 từ/phút sẽ nghỉ khoảng 2 phút. Khoảng nghỉ tối thiểu là 15 giây với chương có chữ.</small>
-          </div>
-          <div class="form-group checkbox-group">
-            <label for="enable-wpm-delay" class="checkbox-label">
-              <input type="checkbox" id="enable-wpm-delay" name="enableWpmDelay" checked>
-              <span>Nghỉ theo độ dài chương (tự động tải từng chương)</span>
-            </label>
-          </div>
-          <div class="form-group">
-            <label for="max-wait-seconds">Giới hạn thời gian chờ tối đa giữa các chương (giây)</label>
-            <input type="number" id="max-wait-seconds" name="maxWaitSeconds" class="form-control" min="0" max="600" step="5" value="30">
-            <small class="field-hint">Dù chương có bao nhiêu từ, thời gian chờ cũng không vượt quá số giây này (ví dụ đặt 30s thay vì phải chờ 500s). Đặt 0 để không giới hạn.</small>
-          </div>
-          <div class="form-group">
-            <label for="inter-chapter-delay">Thời gian chờ cố định giữa các chương khi tắt WPM (giây)</label>
-            <input type="number" id="inter-chapter-delay" name="interChapterDelaySeconds" class="form-control" min="0" max="300" step="1" value="3">
-            <small class="field-hint">Áp dụng khi tắt "Nghỉ theo độ dài chương". Khoảng cách nghỉ an toàn giữa 2 chương liên tiếp.</small>
-          </div>
-          <div class="form-group">
-            <label for="recheck-wait-seconds">Thời gian tạm ngưng chờ tải lại HTML khi trang chưa có nội dung (giây)</label>
-            <input type="number" id="recheck-wait-seconds" name="recheckWaitSeconds" class="form-control" min="3" max="60" step="1" value="10">
-            <small class="field-hint">Khi trang web (SPA/Nuxt/Vue) chưa kịp hiển thị nội dung, crawler sẽ tạm dừng số giây này (không reset trang) để đợi DOM và JavaScript tải xong rồi kiểm tra lại.</small>
-          </div>
-          <div class="form-group">
-            <label for="break-interval">Nghỉ dài định kỳ: Sau mỗi số chương</label>
-            <input type="number" id="break-interval" name="periodicBreakInterval" class="form-control" min="0" max="100" value="10">
-            <small class="field-hint">Tính theo số chương tải thành công qua thẻ. Nhập 0 để tắt.</small>
-          </div>
-          <div class="form-group">
-            <label for="break-seconds">Thời gian nghỉ định kỳ (giây)</label>
-            <input type="number" id="break-seconds" name="periodicBreakSeconds" class="form-control" min="0" max="60" value="5">
-            <small class="field-hint">Cộng thêm vào thời gian nghỉ trước chương kế tiếp.</small>
-          </div>
-          <div class="form-group checkbox-group">
-            <label for="jitter" class="checkbox-label">
-              <input type="checkbox" id="jitter" name="jitter" checked>
-              <span>Cho phép thời gian chờ cơ sở dao động ±30%</span>
-            </label>
-          </div>
-          <div class="form-group checkbox-group full-width">
-            <label for="visible-tab-crawl" class="checkbox-label">
-              <input type="checkbox" id="visible-tab-crawl" name="visibleTab" checked>
-              <span>Đưa thẻ tải truyện ra trước để theo dõi và xác minh khi trang yêu cầu</span>
-            </label>
-          </div>
-          <div class="form-group checkbox-group full-width">
-            <label for="background-chapters-crawl" class="checkbox-label">
-              <input type="checkbox" id="background-chapters-crawl" name="backgroundChapters" checked>
-              <span>Giữ thẻ tải chạy ngầm khi qua chương mới (không chiếm focus màn hình làm phiền bạn)</span>
-            </label>
-          </div>
-          <div class="form-group checkbox-group full-width">
-            <label for="auto-retry-failed-crawl" class="checkbox-label">
-              <input type="checkbox" id="auto-retry-failed-crawl" name="autoRetryFailed" checked>
-              <span>Tự động quét lại các chương tải lỗi khi kết thúc phiên crawl (Auto-retry)</span>
-            </label>
-          </div>
-          <div class="form-group checkbox-group full-width">
-            <label for="include-inline-images" class="checkbox-label">
-              <input type="checkbox" id="include-inline-images" name="includeInlineImages" checked>
-              <span>🖼️ Tải kèm ảnh minh họa: Tự động tải và nhúng toàn bộ ảnh bên trong chương vào EPUB</span>
-            </label>
-          </div>
-          <div class="form-group checkbox-group full-width">
-            <label for="auto-pause-on-sleep" class="checkbox-label">
-              <input type="checkbox" id="auto-pause-on-sleep" name="autoPauseOnSleep" checked>
-              <span>💤 Tự động lưu & tạm dừng khi màn hình máy tính tắt (Screen Off / Lock) hoặc ngắt kết nối mạng</span>
-            </label>
-            <small class="field-hint" style="display: block; margin-top: 4px; margin-left: 26px;">Sử dụng Chrome Idle API: Chỉ ghi nhận khi màn hình máy tính thực sự bị tắt hoặc khóa máy. Chuyển tab làm việc khác cào ngầm bình thường.</small>
-          </div>
-          <div class="form-group full-width">
-            <label for="max-consecutive-errors"><i data-lucide="shield-alert"></i> Tự động dừng khẩn cấp khi lỗi liên tiếp (Circuit Breaker):</label>
-            <select id="max-consecutive-errors" class="form-control select-sm">
-              <option value="3" selected>Dừng & lưu ngay sau 3 chương lỗi liên tiếp (Khuyên dùng khi ngủ quên)</option>
-              <option value="5">Dừng & lưu sau 5 chương lỗi liên tiếp</option>
-              <option value="10">Dừng & lưu sau 10 chương lỗi liên tiếp</option>
-              <option value="0">Tắt (Tiếp tục cào kể cả khi gặp lỗi liên tiếp)</option>
-            </select>
-            <small class="field-hint">Tự động ngắt cào và lưu an toàn khi gặp sự cố mạng/máy tắt giữa chừng, ngăn ngừa hàng chục chương bị báo lỗi oan.</small>
-          </div>
-          <div class="form-group full-width">
-            <label for="epub-split-size"><i data-lucide="layers"></i> Chia nhỏ tập EPUB khi xuất sách:</label>
-            <select id="epub-split-size" class="form-control select-sm">
-              <option value="0" selected>Không chia (1 file EPUB duy nhất)</option>
-              <option value="100">Chia mỗi 100 chương / tập (Quyển 1, Quyển 2...)</option>
-              <option value="200">Chia mỗi 200 chương / tập</option>
-              <option value="500">Chia mỗi 500 chương / tập (khuyên dùng cho truyện dài)</option>
-              <option value="1000">Chia mỗi 1.000 chương / tập</option>
-            </select>
-            <small class="field-hint">Tự động chia thành các tập nhỏ giúp mở sách nhanh và mượt mà trên điện thoại/máy đọc sách.</small>
-          </div>
-          <div class="form-group checkbox-group full-width">
-            <label for="auto-fill-placeholders" class="checkbox-label">
-              <input type="checkbox" id="auto-fill-placeholders" checked>
-              <span><strong>Tự động xếp lại thứ tự & chèn giữ chỗ chương lỗi khi đóng gói EPUB</strong></span>
-            </label>
-            <small class="field-hint" style="display: block; margin-top: 4px; margin-left: 26px;">Khi có chương lỗi giữa chừng (ví dụ lỗi chương 37, 38), lúc đóng gói EPUB sẽ tự động chèn chương giữ chỗ và sắp xếp lại toàn bộ thứ tự để sách không bị nhảy cóc số chương.</small>
-          </div>
-          <div class="form-group checkbox-group full-width">
-            <label for="auto-skip-errors-crawl" class="checkbox-label">
-              <input type="checkbox" id="auto-skip-errors-crawl" checked>
-              <span><strong>Gặp lỗi thì bỏ qua và cào tiếp (không tạm dừng cào)</strong></span>
-            </label>
-            <small class="field-hint" style="display: block; margin-top: 4px; margin-left: 26px;">Khi một chương gặp sự cố hoặc trang chưa có nội dung, hệ thống ghi nhận vào danh sách lỗi và ngay lập tức cào tiếp các chương sau.</small>
+
+          <!-- Phân nhóm 3: Tùy chọn nâng cao & Tự động hóa -->
+          <div class="settings-subgroup">
+            <div class="settings-subgroup-header">
+              <span class="settings-subgroup-title">
+                <i data-lucide="sparkles"></i> Tùy chọn nâng cao &amp; Tự động hóa
+              </span>
+              <span class="settings-subgroup-desc">Thiết lập trải nghiệm tải ngầm, tự động khắc phục lỗi và tối ưu hóa đóng gói EPUB</span>
+            </div>
+
+            <div class="settings-switch-grid">
+              <div class="setting-switch-card">
+                <label for="visible-tab-crawl" class="checkbox-label switch-label">
+                  <input type="checkbox" id="visible-tab-crawl" name="visibleTab" checked>
+                  <div class="switch-content">
+                    <span class="switch-title">Đưa thẻ tải truyện ra trước để theo dõi</span>
+                    <span class="switch-desc">Hiển thị thẻ khi trang web yêu cầu xác minh Cloudflare Turnstile hoặc đăng nhập</span>
+                  </div>
+                </label>
+              </div>
+
+              <div class="setting-switch-card">
+                <label for="background-chapters-crawl" class="checkbox-label switch-label">
+                  <input type="checkbox" id="background-chapters-crawl" name="backgroundChapters" checked>
+                  <div class="switch-content">
+                    <span class="switch-title">Giữ thẻ tải chạy ngầm khi qua chương mới</span>
+                    <span class="switch-desc">Không chiếm focus màn hình làm phiền bạn khi đang làm việc khác</span>
+                  </div>
+                </label>
+              </div>
+
+              <div class="setting-switch-card">
+                <label for="auto-retry-failed-crawl" class="checkbox-label switch-label">
+                  <input type="checkbox" id="auto-retry-failed-crawl" name="autoRetryFailed" checked>
+                  <div class="switch-content">
+                    <span class="switch-title">Tự động quét lại các chương tải lỗi (Auto-retry)</span>
+                    <span class="switch-desc">Tự động quét và tải lại các chương chưa tải được khi kết thúc phiên crawl</span>
+                  </div>
+                </label>
+              </div>
+
+              <div class="setting-switch-card">
+                <label for="include-inline-images" class="checkbox-label switch-label">
+                  <input type="checkbox" id="include-inline-images" name="includeInlineImages" checked>
+                  <div class="switch-content">
+                    <span class="switch-title">🖼️ Tải kèm ảnh minh họa</span>
+                    <span class="switch-desc">Tự động tải và nhúng toàn bộ ảnh bên trong chương vào file EPUB</span>
+                  </div>
+                </label>
+              </div>
+
+              <div class="setting-switch-card">
+                <label for="auto-pause-on-sleep" class="checkbox-label switch-label">
+                  <input type="checkbox" id="auto-pause-on-sleep" name="autoPauseOnSleep" checked>
+                  <div class="switch-content">
+                    <span class="switch-title">💤 Tự động lưu &amp; tạm dừng khi màn hình tắt</span>
+                    <span class="switch-desc">Tạm dừng khi máy khóa/tắt màn hình hoặc ngắt mạng; chuyển tab khác vẫn cào bình thường</span>
+                  </div>
+                </label>
+              </div>
+
+              <div class="setting-switch-card">
+                <label for="auto-fill-placeholders" class="checkbox-label switch-label">
+                  <input type="checkbox" id="auto-fill-placeholders" checked>
+                  <div class="switch-content">
+                    <span class="switch-title">Tự động chèn giữ chỗ chương lỗi khi đóng gói EPUB</span>
+                    <span class="switch-desc">Chèn chương giữ chỗ và sắp xếp lại toàn bộ thứ tự để sách không bị nhảy cóc số chương</span>
+                  </div>
+                </label>
+              </div>
+
+              <div class="setting-switch-card full-span">
+                <label for="auto-skip-errors-crawl" class="checkbox-label switch-label">
+                  <input type="checkbox" id="auto-skip-errors-crawl" checked>
+                  <div class="switch-content">
+                    <span class="switch-title">Gặp lỗi thì bỏ qua và cào tiếp (không dừng phiên)</span>
+                    <span class="switch-desc">Ghi nhận vào danh sách lỗi và ngay lập tức tiếp tục cào các chương kế tiếp</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Tùy chọn danh sách thả xuống trong nhóm nâng cao -->
+            <div class="settings-grid settings-grid-2" style="margin-top: 14px;">
+              <div class="form-group">
+                <label for="max-consecutive-errors" class="aligned-label"><i data-lucide="shield-alert"></i> Dừng khẩn cấp khi lỗi liên tiếp (Circuit Breaker)</label>
+                <select id="max-consecutive-errors" class="form-control select-sm">
+                  <option value="3" selected>Dừng &amp; lưu ngay sau 3 chương lỗi liên tiếp (Khuyên dùng khi ngủ quên)</option>
+                  <option value="5">Dừng &amp; lưu sau 5 chương lỗi liên tiếp</option>
+                  <option value="10">Dừng &amp; lưu sau 10 chương lỗi liên tiếp</option>
+                  <option value="0">Tắt (Tiếp tục cào kể cả khi gặp lỗi liên tiếp)</option>
+                </select>
+                <small class="field-hint">Tự động ngắt cào và lưu an toàn khi gặp sự cố mạng hoặc sập web giữa chừng.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="epub-split-size" class="aligned-label"><i data-lucide="layers"></i> Chia nhỏ tập EPUB khi xuất sách</label>
+                <select id="epub-split-size" class="form-control select-sm">
+                  <option value="0" selected>Không chia (1 file EPUB duy nhất)</option>
+                  <option value="100">Chia mỗi 100 chương / tập (Quyển 1, Quyển 2...)</option>
+                  <option value="200">Chia mỗi 200 chương / tập</option>
+                  <option value="500">Chia mỗi 500 chương / tập (khuyên dùng cho truyện dài)</option>
+                  <option value="1000">Chia mỗi 1.000 chương / tập</option>
+                </select>
+                <small class="field-hint">Chia nhỏ thành các tập giúp mở sách nhẹ mượt hơn trên điện thoại và máy đọc sách.</small>
+              </div>
+            </div>
           </div>
         </div>
       </section>

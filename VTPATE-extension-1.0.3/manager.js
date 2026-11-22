@@ -34,6 +34,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (themeSelect && themeSelect.value !== validTheme) {
       themeSelect.value = validTheme;
     }
+    const indicatorDot = document.getElementById('themeIndicatorDot');
+    if (indicatorDot) {
+      if (validTheme === 'palette-pastel') {
+        indicatorDot.style.backgroundColor = '#915e56';
+      } else if (validTheme === 'custom-palette') {
+        indicatorDot.style.backgroundColor = '#2db0b1';
+      } else {
+        indicatorDot.style.backgroundColor = '#0284c7';
+      }
+    }
   }
 
   // Load saved theme or default to custom-palette
