@@ -1,0 +1,3048 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VTPATE - Novel Crawler & EPUB Creator Studio</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .terminal-scroll::-webkit-scrollbar { width: 5px; }
+    .terminal-scroll::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 3px; }
+    
+    /* Code/Terminal glow */
+    .terminal-line { font-family: 'Consolas', 'Courier New', monospace; line-height: 1.5; }
+    .glow-cyan { text-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
+    .glow-green { text-shadow: 0 0 8px rgba(52, 211, 153, 0.4); }
+    .glow-red { text-shadow: 0 0 8px rgba(248, 113, 113, 0.4); }
+
+    /* DevTools Dual-Pane Inspector DOM Tree Styles */
+    .dom-node {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      line-height: 1.5;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+      font-size: 11.5px;
+      transition: background 0.15s ease, box-shadow 0.15s ease;
+    }
+    .dom-node:hover {
+      background-color: rgba(6, 182, 212, 0.18);
+    }
+    .dom-node.selected-node {
+      background-color: rgba(59, 130, 246, 0.35) !important;
+      outline: 1px solid #3b82f6;
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.35);
+    }
+    .dom-tag { color: #f43f5e; font-weight: 600; }
+    .dom-attr-name { color: #fb923c; margin-left: 4px; }
+    .dom-attr-val { color: #38bdf8; }
+    .dom-text { color: #94a3b8; margin: 0 4px; }
+    .dom-toggle-btn {
+      display: inline-block;
+      width: 14px;
+      text-align: center;
+      font-size: 9px;
+      color: #64748b;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s;
+    }
+    .dom-toggle-btn:hover { color: #38bdf8; }
+    .tree-row { display: flex; align-items: baseline; }
+    .tree-row:hover { background-color: rgba(255, 255, 255, 0.02); }
+
+    /* Live Book Reader Preview Styling */
+    .reader-paper-dark {
+      background-color: #0b1120;
+      color: #e2e8f0;
+    }
+    .reader-paper-sepia {
+      background-color: #fbf0d9 !important;
+      color: #2c2214 !important;
+    }
+    .reader-paper-sepia .reader-title {
+      color: #1a1309 !important;
+    }
+    .reader-paper-sepia .reader-meta {
+      color: #78654c !important;
+    }
+    .reader-paper-sepia .reader-content-body {
+      color: #2c2214 !important;
+    }
+    .reader-paper-white {
+      background-color: #ffffff !important;
+      color: #1e293b !important;
+    }
+    .reader-paper-white .reader-title {
+      color: #0f172a !important;
+    }
+    .reader-paper-white .reader-meta {
+      color: #64748b !important;
+    }
+    .reader-paper-white .reader-content-body {
+      color: #1e293b !important;
+    }
+
+    .reader-content-body {
+      font-family: 'Lora', Georgia, 'Times New Roman', serif;
+      font-size: 16px;
+      line-height: 1.85;
+      text-align: justify;
+    }
+    .reader-content-body p {
+      margin-bottom: 1.2em;
+      text-indent: 1.5em;
+    }
+    .reader-content-body img {
+      max-width: 100%;
+      height: auto;
+      margin: 1.5em auto;
+      display: block;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    .reader-content-body em, .reader-content-body i {
+      font-style: italic;
+    }
+    .reader-content-body strong, .reader-content-body b {
+      font-weight: 700;
+    }
+    .reader-content-body h1, .reader-content-body h2, .reader-content-body h3, .reader-content-body h4 {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-weight: 700;
+      margin-top: 1.5em;
+      margin-bottom: 0.8em;
+      text-indent: 0;
+      text-align: center;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- TOP HEADER -->
+  <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-40 px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
+          <i data-lucide="book-open" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-lg text-white tracking-wide">VTPATE STUDIO</h1>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 font-medium border border-brand-500/20">Web 2.0</span>
+          </div>
+          <p class="text-xs text-slate-400">Gia Tộc Vượng Tài & Generic WebToEpub Novel Crawler</p>
+        </div>
+      </div>
+
+      <!-- STATUS & ACTIONS -->
+      <div class="flex items-center gap-3">
+        <!-- Live status badge -->
+        <div id="statusBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="statusBadgeText">Sẵn sàng</span>
+        </div>
+
+        <button onclick="openFolder('epubs')" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+          <i data-lucide="folder" class="w-3.5 h-3.5"></i>
+          <span>Thư Mục EPUB</span>
+        </button>
+
+        <button onclick="toggleTerminal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+          <i data-lucide="terminal" class="w-3.5 h-3.5 text-brand-400"></i>
+          <span>Console</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <nav class="bg-slate-900 border-b border-slate-800 px-4 lg:px-8">
+    <div class="max-w-7xl mx-auto flex gap-1 overflow-x-auto py-2" id="navTabs">
+      <button onclick="switchTab('crawler')" class="tab-btn active px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition bg-brand-600 text-white shadow-md shadow-brand-500/20" data-tab="crawler">
+        <i data-lucide="download-cloud" class="w-4 h-4"></i>
+        <span>Cào Truyện Mới</span>
+      </button>
+
+      <button onclick="switchTab('checkpoints')" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition text-slate-400 hover:text-slate-200 hover:bg-slate-800/60" data-tab="checkpoints">
+        <i data-lucide="bookmark" class="w-4 h-4"></i>
+        <span>Quản Lý Checkpoint</span>
+        <span id="cpCountBadge" class="ml-1 text-xs px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400">0</span>
+      </button>
+
+      <button onclick="switchTab('cleaner')" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition text-slate-400 hover:text-slate-200 hover:bg-slate-800/60" data-tab="cleaner">
+        <i data-lucide="sparkles" class="w-4 h-4"></i>
+        <span>Xử Lý EPUB Lạ</span>
+      </button>
+
+      <button onclick="switchTab('parsers')" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition text-slate-400 hover:text-slate-200 hover:bg-slate-800/60" data-tab="parsers">
+        <i data-lucide="globe" class="w-4 h-4"></i>
+        <span>Web Khác (WebToEpub)</span>
+      </button>
+
+      <button onclick="switchTab('inspector')" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition text-slate-400 hover:text-slate-200 hover:bg-slate-800/60" data-tab="inspector">
+        <i data-lucide="scan" class="w-4 h-4 text-cyan-400"></i>
+        <span>DevTools Soi HTML</span>
+        <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">Mới</span>
+      </button>
+
+      <button onclick="switchTab('library')" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition text-slate-400 hover:text-slate-200 hover:bg-slate-800/60" data-tab="library">
+        <i data-lucide="library" class="w-4 h-4"></i>
+        <span>Thư Viện EPUB</span>
+      </button>
+
+      <button onclick="switchTab('settings')" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition text-slate-400 hover:text-slate-200 hover:bg-slate-800/60" data-tab="settings">
+        <i data-lucide="settings" class="w-4 h-4"></i>
+        <span>Cài Đặt</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 space-y-6">
+
+    <!-- TAB 1: CÀO TRUYỆN MỚI -->
+    <div id="tab-crawler" class="tab-content space-y-6">
+      
+      <!-- INPUT CARD -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <h2 class="text-base font-bold text-white flex items-center gap-2 mb-2">
+          <i data-lucide="link" class="w-5 h-5 text-brand-400"></i>
+          <span>Link hoặc Slug Truyện</span>
+        </h2>
+        <p class="text-xs text-slate-400 mb-4">Dán link truyện đầy đủ (VD: https://giatocvuongtai.com/stories/slug/ hoặc web truyện khác) hoặc slug truyện:</p>
+
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <input type="text" id="crawlUrlInput" placeholder="https://giatocvuongtai.com/stories/de-nhat-marketing-toan-nang/ hoặc slug..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition shadow-inner">
+          </div>
+          <button onclick="pasteClipboard()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-sm font-medium border border-slate-700 transition flex items-center gap-1.5">
+            <i data-lucide="clipboard" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Dán</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- CONFIG CRAWL OPTIONS -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- CƠ CHẾ CÀO (CRAWL ENGINE) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-2">
+              <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+              <span>Cơ Chế Cào (Engine)</span>
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">Lựa chọn giữa chống bot nghiêm ngặt hoặc cào siêu tốc:</p>
+
+            <div class="space-y-2">
+              <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-800 bg-slate-950/60 hover:bg-slate-800/40 cursor-pointer transition">
+                <input type="radio" name="crawlEngine" value="human" checked onchange="toggleEngineOptions()" class="mt-1 text-brand-600 focus:ring-brand-500">
+                <div>
+                  <div class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <span>🛡️ Chống Bot / Giả Lập</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400">Đọc theo WPM 650, cuộn đọc tự nhiên, nghỉ định kỳ.</div>
+                </div>
+              </label>
+
+              <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-800 bg-slate-950/60 hover:bg-slate-800/40 cursor-pointer transition">
+                <input type="radio" name="crawlEngine" value="web2epub" onchange="toggleEngineOptions()" class="mt-1 text-brand-600 focus:ring-brand-500">
+                <div>
+                  <div class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                    <span>⚡ Siêu Tốc WebToEpub</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400">Không giới hạn thời gian đọc, trích xuất tức thì ~1s/chương.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div id="fastDelayBox" class="mt-4 pt-3 border-t border-slate-800/80 hidden space-y-3">
+            <div>
+              <div class="flex justify-between items-center text-xs mb-1">
+                <span class="text-slate-400">Số luồng tải song song (Concurrency):</span>
+                <span id="concurrencyValue" class="font-bold text-amber-400">3 luồng</span>
+              </div>
+              <input type="range" id="concurrencyRange" min="1" max="10" step="1" value="3" oninput="document.getElementById('concurrencyValue').innerText = this.value + ' luồng'" class="w-full accent-amber-500 cursor-pointer">
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center text-xs mb-1">
+                <span class="text-slate-400">Delay giữa các chương (±30% Jitter):</span>
+                <span id="delayValue" class="font-bold text-amber-400">0.8s</span>
+              </div>
+              <input type="range" id="fastDelayRange" min="0.0" max="5.0" step="0.1" value="0.8" oninput="document.getElementById('delayValue').innerText = this.value + 's'" class="w-full accent-amber-500 cursor-pointer">
+            </div>
+          </div>
+        </div>
+
+        <!-- CHẾ ĐỘ SỐ LƯỢNG CHƯƠNG -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-2">
+            <i data-lucide="layers" class="w-4 h-4 text-emerald-400"></i>
+            <span>Số Lượng Chương Cào</span>
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">Chọn phạm vi cào cho phiên làm việc này:</p>
+
+          <div class="space-y-2">
+            <label class="flex items-center gap-3 p-2 rounded-xl border border-slate-800 bg-slate-950/60 hover:bg-slate-800/40 cursor-pointer transition">
+              <input type="radio" name="crawlMode" value="1" checked onchange="toggleCustomChapBox()" class="text-brand-600 focus:ring-brand-500">
+              <span class="text-xs font-medium text-slate-200">Toàn bộ truyện (Cào hết các chương thiếu)</span>
+            </label>
+
+            <label class="flex items-center gap-3 p-2 rounded-xl border border-slate-800 bg-slate-950/60 hover:bg-slate-800/40 cursor-pointer transition">
+              <input type="radio" name="crawlMode" value="2" onchange="toggleCustomChapBox()" class="text-brand-600 focus:ring-brand-500">
+              <span class="text-xs font-medium text-slate-200">5 chương mẫu (Demo kiểm tra)</span>
+            </label>
+
+            <label class="flex items-center gap-3 p-2 rounded-xl border border-slate-800 bg-slate-950/60 hover:bg-slate-800/40 cursor-pointer transition">
+              <input type="radio" name="crawlMode" value="3" onchange="toggleCustomChapBox()" class="text-brand-600 focus:ring-brand-500">
+              <span class="text-xs font-medium text-slate-200">Tùy chọn số chương cụ thể</span>
+            </label>
+
+            <div id="customChapBox" class="pl-7 hidden">
+              <input type="number" id="customChapCount" value="20" min="1" max="10000" class="w-32 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:border-brand-500">
+              <span class="text-xs text-slate-400 ml-2">chương</span>
+            </div>
+
+            <label class="flex items-center gap-3 p-2 rounded-xl border border-slate-800 bg-slate-950/60 hover:bg-slate-800/40 cursor-pointer transition">
+              <input type="radio" name="crawlMode" value="range" onchange="toggleCustomChapBox()" class="text-brand-600 focus:ring-brand-500">
+              <span class="text-xs font-medium text-slate-200">Theo khoảng chương (Từ X đến Y)</span>
+            </label>
+
+            <div id="rangeChapBox" class="pl-7 hidden flex items-center gap-2">
+              <span class="text-xs text-slate-400">Từ</span>
+              <input type="number" id="rangeStartInput" value="1" min="1" class="w-20 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:border-brand-500">
+              <span class="text-xs text-slate-400">Đến</span>
+              <input type="number" id="rangeEndInput" value="50" min="1" class="w-20 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:border-brand-500">
+            </div>
+
+            <div class="pt-2 border-t border-slate-800/80">
+              <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                <input type="checkbox" id="reverseOrderCheck" class="text-brand-600 rounded">
+                <span class="text-[11px] text-indigo-300 font-medium">🔄 Đảo ngược thứ tự chương (cào từ cuối về đầu)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHIA NHỎ EPUB & CLASS CẦN XÓA -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-1">
+              <i data-lucide="split" class="w-4 h-4 text-purple-400"></i>
+              <span>Chia Nhỏ File EPUB</span>
+            </h3>
+            <select id="splitSizeSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:border-brand-500">
+              <option value="0">Không chia nhỏ (1 file duy nhất full truyện)</option>
+              <option value="100">Chia mỗi 100 chương / 1 file</option>
+              <option value="300">Chia mỗi 300 chương / 1 file</option>
+              <option value="500">Chia mỗi 500 chương / 1 file</option>
+              <option value="1000">Chia mỗi 1000 chương / 1 file</option>
+            </select>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-1">
+              <i data-lucide="filter" class="w-4 h-4 text-rose-400"></i>
+              <span>Class Cần Xóa Thủ Công</span>
+            </h3>
+            <input type="text" id="customClassesInput" placeholder="vd: anti-bot, spam-box (để trống = tự động xóa bẫy)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:border-brand-500">
+            <p class="text-[11px] text-slate-500 mt-1">Để trống = Tự động quét & diệt thẻ ẩn, style tàng hình, honeypot.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- METADATA OVERRIDE ACCORDION -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+        <details class="group">
+          <summary class="flex items-center justify-between cursor-pointer list-none">
+            <div class="flex items-center gap-2">
+              <i data-lucide="edit-3" class="w-4 h-4 text-cyan-400"></i>
+              <span class="text-sm font-bold text-white">Tùy Chỉnh Thông Tin Truyện (Metadata Override - Tùy chọn)</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">Ghi đè Tên, Tác giả, Ảnh bìa, Giới thiệu</span>
+            </div>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform group-open:rotate-180"></i>
+          </summary>
+          <div class="mt-4 pt-4 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">Tên Truyện Mới (Bỏ trống = Lấy theo web):</label>
+              <input type="text" id="overrideTitleInput" placeholder="vd: Đệ Nhất Marketing Toàn Năng" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-cyan-500">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">Tác Giả Mới (Bỏ trống = Lấy theo web):</label>
+              <input type="text" id="overrideAuthorInput" placeholder="vd: Tên Tác Giả" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-cyan-500">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="text-[11px] text-slate-400 block mb-1">Link Ảnh Bìa Tùy Biến (URL):</label>
+              <input type="text" id="overrideCoverInput" placeholder="https://example.com/cover.jpg" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-cyan-500">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="text-[11px] text-slate-400 block mb-1">Văn Án / Giới Thiệu Tùy Biến:</label>
+              <textarea id="overrideSummaryInput" rows="3" placeholder="Nhập văn án hoặc tóm tắt truyện nếu muốn thay đổi..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-slate-200 focus:border-cyan-500"></textarea>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- CONTROL BUTTONS & PROGRESS -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="btnStartCrawl" onclick="startCrawl()" class="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 transition cursor-pointer">
+            <i data-lucide="play" class="w-4 h-4"></i>
+            <span>BẮT ĐẦU CÀO TRUYỆN</span>
+          </button>
+
+          <button id="btnPauseCrawl" onclick="togglePause()" class="px-5 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50" disabled>
+            <i data-lucide="pause" class="w-4 h-4"></i>
+            <span id="btnPauseText">TẠM DỪNG</span>
+          </button>
+
+          <button id="btnStopCrawl" onclick="stopCrawl()" class="px-5 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50" disabled>
+            <i data-lucide="square" class="w-4 h-4"></i>
+            <span>DỪNG & LƯU CHECKPOINT</span>
+          </button>
+        </div>
+
+        <!-- PROGRESS BAR -->
+        <div id="progressContainer" class="space-y-2 pt-2">
+          <div class="flex justify-between items-center text-xs">
+            <span id="progressStatusText" class="text-slate-300 font-medium">Sẵn sàng thực hiện tác vụ.</span>
+            <span id="progressPercentText" class="text-brand-400 font-bold">0%</span>
+          </div>
+          <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-800">
+            <div id="progressBar" class="h-full bg-gradient-to-r from-brand-500 to-emerald-400 rounded-full transition-all duration-300 w-0"></div>
+          </div>
+        </div>
+
+        <!-- FAILED CHAPTERS ALERT & RETRY -->
+        <div id="failedChaptersBox" class="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 hidden space-y-3">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-400 shrink-0"></i>
+              <div>
+                <span id="failedChaptersCount" class="text-xs font-bold text-rose-300">Có 0 chương tải lỗi!</span>
+                <p id="failedChaptersList" class="text-[11px] text-slate-300 mt-0.5">Danh sách: ...</p>
+              </div>
+            </div>
+            <button onclick="retryFailedChapters()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-lg shadow-rose-500/20 cursor-pointer shrink-0">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Tải Lại Các Chương Lỗi</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: QUẢN LÝ CHECKPOINT -->
+    <div id="tab-checkpoints" class="tab-content space-y-6 hidden">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="bookmark" class="w-5 h-5 text-brand-400"></i>
+              <span>Danh Sách Checkpoint Đã Lưu</span>
+            </h2>
+            <p class="text-xs text-slate-400">Truyện 'Đang cập nhật' được bảo lưu vĩnh viễn để kiểm tra và cào chương mới bất kỳ lúc nào.</p>
+          </div>
+
+          <button onclick="loadCheckpoints()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium border border-slate-700 flex items-center gap-1.5 transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>Làm Mới</span>
+          </button>
+        </div>
+
+        <!-- Checkpoints Table -->
+        <div class="overflow-x-auto rounded-xl border border-slate-800">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="px-4 py-3">Tên Truyện / Slug</th>
+                <th class="px-4 py-3">Trạng Thái</th>
+                <th class="px-4 py-3">Tiến Độ Cào</th>
+                <th class="px-4 py-3">Lưu Lúc</th>
+                <th class="px-4 py-3 text-right">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="checkpointsTableBody" class="divide-y divide-slate-800">
+              <tr>
+                <td colspan="5" class="px-4 py-6 text-center text-slate-500">Đang tải dữ liệu checkpoint...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: XỬ LÝ EPUB LẠ -->
+    <div id="tab-cleaner" class="tab-content space-y-6 hidden">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-5 h-5 text-brand-400"></i>
+            <span>Làm Sạch & Chuẩn Hóa File EPUB Định Dạng Lạ</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Quét sạch thẻ p ẩn, style tàng hình (display:none, opacity:0, font-size:0), bẫy honeypot, watermark spam. Bảo toàn toàn bộ link và tự động chèn chữ pass nếu chương trống.</p>
+        </div>
+
+        <!-- DRAG AND DROP ZONE -->
+        <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-brand-500 bg-slate-950/60 rounded-2xl p-8 text-center transition cursor-pointer flex flex-col items-center justify-center gap-3">
+          <input type="file" id="cleanerFileInput" accept=".epub" class="hidden" onchange="handleFileSelected(this)">
+          <div class="w-14 h-14 rounded-2xl bg-brand-500/10 text-brand-400 flex items-center justify-center">
+            <i data-lucide="upload-cloud" class="w-7 h-7"></i>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-slate-200">Kéo & thả file .epub vào đây hoặc <span class="text-brand-400 underline">bấm để chọn file</span></p>
+            <p class="text-xs text-slate-500 mt-1">Hỗ trợ mọi file EPUB tải từ mạng hoặc tạo bởi các công cụ khác</p>
+          </div>
+          <div id="selectedFileName" class="text-xs font-semibold text-emerald-400 mt-2 hidden"></div>
+        </div>
+
+        <!-- OPTIONS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+            <label class="text-xs font-bold text-slate-300 block mb-1">Class Cần Xóa (Thủ Công):</label>
+            <input type="text" id="cleanerCustomClasses" placeholder="vd: hide-p, anti-bot (để trống = tự động)" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+            <p class="text-[11px] text-slate-500 mt-1">Để trống để hệ thống tự động quét sạch các thẻ ẩn, honeypot.</p>
+          </div>
+
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 flex flex-col justify-center space-y-2 text-xs text-slate-300">
+            <div class="flex items-center gap-2">
+              <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+              <span>Giữ nguyên 100% link đã chèn (<code class="text-brand-400">&lt;a&gt;</code> tag)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+              <span>Tự động bổ sung chữ <code class="text-amber-400">pass</code> cho chương rỗng</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+              <span>Chuẩn hóa màu sắc cho Dark Mode máy đọc sách</span>
+            </div>
+          </div>
+        </div>
+
+        <button id="btnRunCleaner" onclick="runCleaner()" class="w-full py-3.5 bg-gradient-to-r from-purple-600 to-brand-600 hover:from-purple-500 hover:to-brand-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2 transition cursor-pointer">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>BẮT ĐẦU XỬ LÝ & LÀM SẠCH EPUB</span>
+        </button>
+
+        <!-- CLEANER RESULTS -->
+        <div id="cleanerResultBox" class="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hidden space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+              <span id="cleanerResultMsg" class="text-xs font-bold text-emerald-300">Đã làm sạch file EPUB thành công!</span>
+            </div>
+            <a id="cleanerDownloadBtn" href="#" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Tải File Sạch (.epub)</span>
+            </a>
+          </div>
+          <div id="cleanerStatsText" class="text-xs text-slate-400"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: WEB KHÁC (WEBTOEPUB) -->
+    <div id="tab-parsers" class="tab-content space-y-6 hidden">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="globe" class="w-5 h-5 text-brand-400"></i>
+              <span>Tùy Chỉnh Bộ Bóc Tách (WebToEpub Style)</span>
+            </h2>
+            <p class="text-xs text-slate-400">Tự do cào dữ liệu từ bất kỳ website truyện nào bằng CSS Selectors hoặc Auto-Detect.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <select id="parserProfileSelect" onchange="loadSelectedParserProfile()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+              <option value="">-- Chọn Website --</option>
+            </select>
+            <button onclick="newParserProfile()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium border border-slate-700">➕ Tạo Mới</button>
+            <button onclick="deleteParserProfile()" class="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl text-xs font-medium border border-rose-500/30">🗑️ Xóa</button>
+          </div>
+        </div>
+
+        <!-- AUTO DETECT BOX -->
+        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+          <label class="text-xs font-bold text-slate-300 block">URL Truyện Mẫu (Để Dò Tìm & Test):</label>
+          <div class="flex gap-2">
+            <input type="text" id="parserSampleUrl" placeholder="https://truyenfull.vn/ten-truyen/..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500">
+            <button onclick="runAutoDetect()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+              <i data-lucide="search" class="w-3.5 h-3.5"></i>
+              <span>Dò Tìm Selector (Auto Detect)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- SELECTORS GRID -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-bold text-slate-300 block mb-1">Domain Website (bắt buộc):</label>
+            <input type="text" id="pDomain" placeholder="vd: truyenfull.vn" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-300 block mb-1">Tên Hiển Thị:</label>
+            <input type="text" id="pName" placeholder="vd: Truyện Full" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-300 block mb-1">Tên Truyện (CSS Selector):</label>
+            <input type="text" id="pStoryTitle" placeholder="vd: h1.title" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-300 block mb-1">Tác Giả (CSS Selector):</label>
+            <input type="text" id="pAuthor" placeholder="vd: .author a" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-300 block mb-1">Ảnh Bìa (CSS Selector):</label>
+            <input type="text" id="pCover" placeholder="vd: .book-cover img" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-300 block mb-1">Văn Án / Tóm Tắt (CSS Selector):</label>
+            <input type="text" id="pSummary" placeholder="vd: .desc-text" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-300 block mb-1">Danh Sách Chương (CSS Selector):</label>
+            <input type="text" id="pChapterList" placeholder="vd: .list-chapter a" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-300 block mb-1">Tiêu Đề Chương (CSS Selector):</label>
+            <input type="text" id="pChapterTitle" placeholder="vd: h2.chapter-title" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-300 block mb-1">Nội Dung Chương (CSS Selector):</label>
+            <input type="text" id="pChapterContent" placeholder="vd: .chapter-c" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+          </div>
+        </div>
+
+        <!-- CẤU HÌNH PHÂN TRANG MỤC LỤC TRUYỆN (PAGINATION SETTINGS) -->
+        <div class="p-4 rounded-xl bg-slate-950 border border-cyan-900/50 space-y-3">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+            <h3 class="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+              <i data-lucide="layers" class="w-4 h-4 text-cyan-400"></i>
+              <span>Cơ Chế Phân Trang Mục Lục (Chuyển trang danh sách chương)</span>
+            </h3>
+            <span class="text-[11px] text-slate-400">Hỗ trợ tự động phân tích hoặc tự setup thủ công</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div>
+              <label class="text-[11px] font-semibold text-slate-300 block mb-1">Kiểu Phân Trang:</label>
+              <select id="pPaginationType" onchange="updatePaginationUI()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-cyan-300 focus:outline-none focus:border-cyan-500">
+                <option value="auto">⚡ Tự động (Auto Detect)</option>
+                <option value="next_button">👉 Nút Chuyển Trang (Next Page)</option>
+                <option value="url_pattern">🔗 Mẫu URL (URL Pattern)</option>
+                <option value="load_more">🔄 Nút Tải Thêm (Load More)</option>
+              </select>
+            </div>
+
+            <div id="wrapperNextPage" class="sm:col-span-1">
+              <label class="text-[11px] font-semibold text-slate-300 block mb-1">Nút Sang Trang / Tải Thêm (CSS/XPath):</label>
+              <input type="text" id="pNextPage" placeholder="vd: .pagination .next a hoặc //button[contains(.,'Sau')]" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+            </div>
+
+            <div id="wrapperPaginationPattern" class="sm:col-span-1">
+              <label class="text-[11px] font-semibold text-slate-300 block mb-1">Mẫu URL Trang (Pagination Pattern):</label>
+              <input type="text" id="pPaginationPattern" placeholder="vd: trang-{page}/ hoặc ?page={page}" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+            </div>
+
+            <div class="sm:col-span-1">
+              <label class="text-[11px] font-semibold text-slate-300 block mb-1">Giới Hạn Số Trang (0 = Hết):</label>
+              <input type="number" id="pMaxPaginationPages" min="0" max="1000" placeholder="0 (Không giới hạn)" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+            </div>
+          </div>
+          <div class="text-[11px] text-slate-400 bg-slate-900/60 rounded-lg px-3 py-2 border border-slate-800/80 flex items-center gap-2">
+            <i data-lucide="info" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+            <span id="paginationHelpText">⚡ <b>Tự động (Auto Detect)</b>: Tự tìm nút Sau/Tiếp, liên kết rel="next", số trang liền kề (1, 2, 3...) và nút Xem Thêm.</span>
+          </div>
+        </div>
+
+        <!-- CẤU HÌNH TÀI KHOẢN ĐĂNG NHẬP CHO WEB NÀY (TÙY CHỌN) -->
+        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <h3 class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="key-round" class="w-4 h-4 text-brand-400"></i>
+              <span>Thông Tin Đăng Nhập Web Này (Tùy chọn - Dành cho web cần tài khoản VIP / thành viên)</span>
+            </h3>
+            <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+              <input type="checkbox" id="pAutoLogin" class="text-brand-600 rounded">
+              <span class="font-medium text-amber-300">Tự động đăng nhập khi cào web này</span>
+            </label>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">Link Đăng Nhập (Login URL):</label>
+              <input type="text" id="pLoginUrl" placeholder="vd: https://domain.com/login" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">Email / Tên Đăng Nhập:</label>
+              <input type="text" id="pLoginEmail" placeholder="user@gmail.com hoặc username" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">Mật Khẩu:</label>
+              <input type="password" id="pLoginPass" placeholder="••••••••" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="flex flex-wrap items-center gap-3 pt-2">
+          <button onclick="saveParserProfile()" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+            <i data-lucide="save" class="w-4 h-4"></i>
+            <span>Lưu Cấu Hình Này</span>
+          </button>
+
+          <button onclick="testParserProfile()" class="px-5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+            <i data-lucide="flask-conical" class="w-4 h-4"></i>
+            <span>Kiểm Tra Thử (Test Chapter 1)</span>
+          </button>
+
+          <button onclick="applyParserAndCrawl()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+            <i data-lucide="play" class="w-4 h-4"></i>
+            <span>Áp Dụng & Cào Truyện</span>
+          </button>
+        </div>
+
+        <!-- LIVE CHAPTER READER & FORMAT PREVIEW (XEM TRỰC TIẾP ĐỊNH DẠNG EPUB / WEBTOEPUB) -->
+        <div id="testReaderModal" class="rounded-2xl bg-slate-950 border border-cyan-500/40 shadow-2xl hidden space-y-4 overflow-hidden transition-all duration-300">
+          
+          <!-- Top Control Header -->
+          <div class="p-4 bg-slate-900 border-b border-slate-800 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <!-- Story & Chapter Meta -->
+            <div class="flex items-start sm:items-center gap-3">
+              <img id="testReaderCoverImg" src="" alt="Bìa" class="w-12 h-16 object-cover rounded-lg border border-slate-700 shadow-md hidden sm:block shrink-0 bg-slate-800">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-bold">
+                    📖 LIVE READER PREVIEW
+                  </span>
+                  <span id="testReaderPassBadge" class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
+                    ✅ Đạt chuẩn EPUB
+                  </span>
+                </div>
+                <h3 id="testReaderStoryName" class="text-sm font-bold text-white mt-1">Tên Truyện</h3>
+                <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400 mt-0.5">
+                  <span>Tác giả: <b id="testReaderAuthor" class="text-slate-200">Đang cập nhật</b></span>
+                  <span>•</span>
+                  <span>Đang xem: <b id="testReaderCurrentTitle" class="text-cyan-300">Chương 1</b></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reader Controls & Subtabs -->
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+              <!-- Subtabs: Reader View vs Raw Clean HTML vs Chapter List -->
+              <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                <button id="btnReaderModeView" onclick="switchReaderTab('view')" class="px-3 py-1.5 rounded-lg font-bold text-cyan-400 bg-slate-800 shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                  <span>Đọc Thử Sách</span>
+                </button>
+                <button id="btnReaderModeCode" onclick="switchReaderTab('code')" class="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="code" class="w-3.5 h-3.5"></i>
+                  <span>Mã HTML Chuẩn</span>
+                </button>
+                <button id="btnReaderModeList" onclick="switchReaderTab('list')" class="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                  <span id="btnReaderChapsCount">DS Chương (0)</span>
+                </button>
+              </div>
+
+              <!-- Theme Palette Buttons -->
+              <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <button onclick="setReaderPaperTheme('dark')" class="w-6 h-6 rounded-lg bg-slate-900 border border-slate-700 hover:scale-105 transition flex items-center justify-center text-xs cursor-pointer" title="Chế độ Tối (Dark)">🌙</button>
+                <button onclick="setReaderPaperTheme('sepia')" class="w-6 h-6 rounded-lg bg-[#fbf0d9] border border-[#d6c7a7] hover:scale-105 transition flex items-center justify-center text-xs cursor-pointer" title="Chế độ Giấy Vàng Cũ (Sepia)">📜</button>
+                <button onclick="setReaderPaperTheme('white')" class="w-6 h-6 rounded-lg bg-white border border-slate-300 hover:scale-105 transition flex items-center justify-center text-xs cursor-pointer" title="Chế độ Giấy Trắng (White)">☀️</button>
+              </div>
+
+              <!-- Font Size Buttons -->
+              <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                <button onclick="changeReaderFontSize(-1)" class="px-2 py-1 hover:bg-slate-800 text-slate-300 rounded font-bold cursor-pointer" title="Giảm cỡ chữ">A-</button>
+                <span id="readerFontSizeLabel" class="text-[11px] text-slate-400 px-1 font-mono">16px</span>
+                <button onclick="changeReaderFontSize(1)" class="px-2 py-1 hover:bg-slate-800 text-slate-300 rounded font-bold cursor-pointer" title="Tăng cỡ chữ">A+</button>
+              </div>
+
+              <button onclick="downloadTestChapterHtml()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition cursor-pointer" title="Tải file HTML chương này về máy">
+                <i data-lucide="download" class="w-4 h-4"></i>
+              </button>
+
+              <button onclick="closeReaderModal()" class="p-2 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 rounded-xl border border-slate-700 transition cursor-pointer" title="Đóng khung đọc thử">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Statistics & Chapter Selector Bar -->
+          <div class="px-4 py-2.5 bg-slate-950/80 border-b border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+            <!-- Chapter Selector Dropdown -->
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              <span class="text-slate-400 shrink-0 font-medium">Chọn chương:</span>
+              <select id="readerChapterSelect" onchange="onReaderChapterSelectChange()" class="flex-1 sm:w-72 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200">
+                <option value="1">Chương 1 (Đang nạp...)</option>
+              </select>
+            </div>
+
+            <!-- Stats Badges -->
+            <div class="flex flex-wrap items-center gap-3 text-slate-400 font-mono text-[11px]">
+              <span>Đoạn văn: <b id="statParagraphs" class="text-cyan-300">0</b> thẻ &lt;p&gt;</span>
+              <span>•</span>
+              <span>Số từ: <b id="statWords" class="text-cyan-300">0</b> từ</span>
+              <span>•</span>
+              <span>Ký tự: <b id="statChars" class="text-cyan-300">0</b></span>
+              <span>•</span>
+              <span>Hình ảnh: <b id="statImages" class="text-cyan-300">0</b></span>
+            </div>
+          </div>
+
+          <!-- TAB CONTENT 1: BOOK READER VIEW (Giao diện đọc thử như sách thực tế) -->
+          <div id="readerTabContentBook" class="p-4 sm:p-8 flex justify-center overflow-y-auto max-h-[650px] terminal-scroll">
+            <div id="readerPaperBox" class="w-full max-w-3xl reader-paper-dark rounded-2xl p-6 sm:p-10 shadow-xl border border-slate-800/60 transition-colors duration-200">
+              
+              <!-- Chapter Header Inside Paper -->
+              <div class="text-center pb-6 mb-6 border-b border-current opacity-80">
+                <div id="readerPaperStory" class="text-xs uppercase tracking-widest reader-meta opacity-75 font-semibold">TÊN TRUYỆN</div>
+                <h1 id="readerPaperHeading" class="text-xl sm:text-2xl font-bold reader-title mt-2 mb-1">Chương 1: Tiêu Đề Chương</h1>
+                <div id="readerPaperAuthor" class="text-xs reader-meta opacity-75">Tác giả: ...</div>
+              </div>
+
+              <!-- Main Chapter Content Body -->
+              <div id="readerPaperContent" class="reader-content-body select-text">
+                <!-- Cleaned paragraphs will be rendered here -->
+              </div>
+
+              <!-- Bottom Chapter Navigation -->
+              <div class="flex items-center justify-between pt-8 mt-8 border-t border-current opacity-70 text-xs">
+                <button id="btnPrevChapter" onclick="navigateReaderChapter(-1)" class="px-4 py-2 rounded-lg border border-current hover:opacity-100 transition flex items-center gap-1 cursor-pointer">
+                  <span>◀ Chương Trước</span>
+                </button>
+                <span id="readerBottomIndicator" class="font-mono text-[11px]">1 / 1</span>
+                <button id="btnNextChapter" onclick="navigateReaderChapter(1)" class="px-4 py-2 rounded-lg border border-current hover:opacity-100 transition flex items-center gap-1 cursor-pointer">
+                  <span>Chương Tiếp ▶</span>
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- TAB CONTENT 2: CLEANED HTML SOURCE CODE -->
+          <div id="readerTabContentCode" class="p-4 space-y-2 hidden">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+              <span class="font-mono">MÃ HTML ĐÃ LÀM SẠCH (Clean HTML for EPUB):</span>
+              <button onclick="copyCleanedHtml()" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700 flex items-center gap-1 transition cursor-pointer">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span id="btnCopyCleanHtmlText">Sao Chép HTML</span>
+              </button>
+            </div>
+            <textarea id="testCleanHtmlTextarea" readonly class="w-full h-[550px] bg-slate-950 text-slate-200 p-4 font-mono text-xs leading-relaxed resize-y focus:outline-none select-text border border-slate-800 rounded-xl terminal-scroll" spellcheck="false" wrap="soft"></textarea>
+          </div>
+
+          <!-- TAB CONTENT 3: CHAPTER LIST -->
+          <div id="readerTabContentList" class="p-4 space-y-3 hidden">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-300 font-bold">Danh Sách Chương Đã Quét Được:</span>
+              <span id="totalChapsBadge" class="text-slate-400 font-mono">0 chương</span>
+            </div>
+            <div class="max-h-[500px] overflow-y-auto rounded-xl border border-slate-800 terminal-scroll">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-900 text-slate-400 uppercase text-[10px] sticky top-0 border-b border-slate-800">
+                  <tr>
+                    <th class="px-3 py-2 w-16 text-center">STT</th>
+                    <th class="px-3 py-2">Tiêu Đề Chương</th>
+                    <th class="px-3 py-2 text-right">Hành Động</th>
+                  </tr>
+                </thead>
+                <tbody id="readerChapterListTableBody" class="divide-y divide-slate-800/60 bg-slate-950">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: SOI NGUỒN HTML CỦA MỌI TRANG WEB (DEVTOOLS DUAL-PANE INSPECTOR) -->
+    <div id="tab-inspector" class="tab-content space-y-4 hidden">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        
+        <!-- HEADER & ACTIONS -->
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="scan" class="w-5 h-5 text-cyan-400"></i>
+              <span>DevTools Inspector: Soi Trực Quan 2 Chiều (Split-View DevTools)</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Một bên hiện trang đã render, một bên hiện mã nguồn HTML / Cây DOM. Click vào bất kỳ vùng nào trên trang web thì phần tử HTML tương ứng sẽ tự động nổi lên và ngược lại!</p>
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <button onclick="sendToCrawlerFromInspector()" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+              <i data-lucide="play" class="w-3.5 h-3.5"></i>
+              <span>Cào Truyện Này</span>
+            </button>
+            <button onclick="sendToParsersFromInspector()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+              <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+              <span>Gửi Sang WebToEpub</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- INPUT URL & CHỌN CHẾ ĐỘ -->
+        <div class="space-y-3">
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="text" id="inspectorUrlInput" placeholder="Dán link trang web cần soi vào đây (vd: link chương truyện hoặc trang chủ)..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition shadow-inner">
+            <div class="flex gap-2">
+              <button onclick="pasteToInspector()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-sm font-medium border border-slate-700 transition flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="clipboard" class="w-4 h-4"></i>
+                <span>Dán</span>
+              </button>
+              <button id="btnFetchHtml" onclick="fetchPageHtml()" class="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 transition cursor-pointer">
+                <i data-lucide="scan" class="w-4 h-4"></i>
+                <span id="btnFetchHtmlText">TẢI & BẬT DEVTOOLS</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
+            <div class="flex items-center gap-5">
+              <span class="font-bold text-slate-300">Chế độ tải:</span>
+              <label class="flex items-center gap-1.5 cursor-pointer text-slate-200 hover:text-white">
+                <input type="radio" name="inspectorMode" value="browser" checked class="text-cyan-500 focus:ring-cyan-500">
+                <span>🚀 Selenium Browser (Đầy đủ Javascript / DOM Rendered)</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-slate-200 hover:text-white">
+                <input type="radio" name="inspectorMode" value="fast" class="text-cyan-500 focus:ring-cyan-500">
+                <span>⚡ Tải nhanh HTTP</span>
+              </label>
+            </div>
+
+            <div id="inspectorStats" class="flex items-center gap-3 text-xs text-slate-400 hidden">
+              <span>Tiêu đề: <b id="inspectorPageTitle" class="text-cyan-300"></b></span>
+              <span>•</span>
+              <span>Dung lượng: <b id="inspectorSizeKb" class="text-slate-200 font-mono">0</b> KB</span>
+              <span>•</span>
+              <span>Ký tự: <b id="inspectorCharCount" class="text-slate-200 font-mono">0</b></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTIVE ELEMENT SELECTOR BAR (DEVTOOLS TOP TOOLBAR) -->
+        <div id="inspectorActiveBar" class="p-3 rounded-xl bg-slate-950 border border-cyan-500/40 hidden">
+          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2.5 flex-1 min-w-0">
+              <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-mono font-bold text-[11px] flex items-center gap-1 shrink-0 border border-cyan-500/30">
+                <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+                <span id="insSelectedTag">body</span>
+              </span>
+              <div class="truncate text-slate-200 font-mono text-xs flex-1">
+                <span class="text-slate-500">Selector:</span>
+                <span id="insSelectedSelector" class="font-bold text-amber-300 ml-1 select-all">body</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="copyActiveSelector()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 flex items-center gap-1 transition cursor-pointer">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span id="btnCopySelectorText">Copy Selector</span>
+              </button>
+              
+              <div class="relative inline-block text-left">
+                <button onclick="toggleAssignMenu()" class="px-2.5 py-1.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 border border-purple-500/40 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer">
+                  <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                  <span>Gán vào WebToEpub ▾</span>
+                </button>
+                <div id="assignMenuDropdown" class="origin-top-right absolute right-0 mt-1 w-64 rounded-xl shadow-2xl bg-slate-900 border border-slate-700 py-1.5 z-50 hidden">
+                  <div class="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">Chọn ô đích để gán selector:</div>
+                  <button onclick="assignSelectorTo('pStoryTitle')" class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 hover:text-cyan-400 flex items-center justify-between cursor-pointer">
+                    <span>Tên truyện</span> <code class="text-[10px] text-slate-500">#pStoryTitle</code>
+                  </button>
+                  <button onclick="assignSelectorTo('pAuthor')" class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 hover:text-cyan-400 flex items-center justify-between cursor-pointer">
+                    <span>Tác giả</span> <code class="text-[10px] text-slate-500">#pAuthor</code>
+                  </button>
+                  <button onclick="assignSelectorTo('pCover')" class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 hover:text-cyan-400 flex items-center justify-between cursor-pointer">
+                    <span>Ảnh bìa</span> <code class="text-[10px] text-slate-500">#pCover</code>
+                  </button>
+                  <button onclick="assignSelectorTo('pSummary')" class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 hover:text-cyan-400 flex items-center justify-between cursor-pointer">
+                    <span>Văn án / Tóm tắt</span> <code class="text-[10px] text-slate-500">#pSummary</code>
+                  </button>
+                  <button onclick="assignSelectorTo('pChapterList')" class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 hover:text-cyan-400 flex items-center justify-between cursor-pointer">
+                    <span>Danh sách chương</span> <code class="text-[10px] text-slate-500">#pChapterList</code>
+                  </button>
+                  <button onclick="assignSelectorTo('pNextPage')" class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 hover:text-cyan-400 flex items-center justify-between cursor-pointer">
+                    <span>Nút sang trang / Tải thêm</span> <code class="text-[10px] text-slate-500">#pNextPage</code>
+                  </button>
+                  <button onclick="assignSelectorTo('pChapterTitle')" class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 hover:text-cyan-400 flex items-center justify-between cursor-pointer">
+                    <span>Tiêu đề chương</span> <code class="text-[10px] text-slate-500">#pChapterTitle</code>
+                  </button>
+                  <button onclick="assignSelectorTo('pChapterContent')" class="w-full text-left px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800 hover:text-cyan-400 flex items-center justify-between cursor-pointer">
+                    <span>Nội dung chương</span> <code class="text-[10px] text-slate-500">#pChapterContent</code>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DUAL-PANE SPLIT VIEW CONTAINER -->
+        <div id="inspectorDualPane" class="grid grid-cols-1 lg:grid-cols-2 gap-4 hidden">
+          
+          <!-- LEFT PANE: RENDERED PAGE VIEW (IFRAME) -->
+          <div class="rounded-xl border border-slate-800 bg-slate-950 flex flex-col h-[700px] overflow-hidden shadow-2xl">
+            <!-- Left Pane Header -->
+            <div class="px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-xs text-slate-300">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="font-bold text-white flex items-center gap-1.5">
+                  <i data-lucide="monitor" class="w-4 h-4 text-emerald-400"></i>
+                  <span>Giao Diện Đã Render (Live Preview)</span>
+                </span>
+                <span class="hidden sm:inline px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
+                  🎯 Rê chuột & Click để soi
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button onclick="reloadInspectorIframe()" class="p-1 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded transition cursor-pointer" title="Tải lại khung xem">
+                  <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="openIframeInNewTab()" class="p-1 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded transition cursor-pointer" title="Mở trang gốc tab mới">
+                  <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Iframe host container -->
+            <div class="relative flex-1 bg-white">
+              <iframe id="inspectorIframe" class="w-full h-full border-0" sandbox="allow-same-origin allow-scripts"></iframe>
+            </div>
+          </div>
+
+          <!-- RIGHT PANE: DOM TREE / RAW HTML / TESTER -->
+          <div class="rounded-xl border border-slate-800 bg-slate-950 flex flex-col h-[700px] overflow-hidden shadow-2xl">
+            <!-- Right Pane Header Subtabs -->
+            <div class="px-4 py-2 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-xs">
+              <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <button id="insSubtabTreeBtn" onclick="switchInspectorSubtab('tree')" class="px-3 py-1 rounded-md font-bold text-cyan-400 bg-slate-800 shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="git-branch" class="w-3.5 h-3.5"></i>
+                  <span>Cây DOM Elements</span>
+                </button>
+                <button id="insSubtabRawBtn" onclick="switchInspectorSubtab('raw')" class="px-3 py-1 rounded-md font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="file-code" class="w-3.5 h-3.5"></i>
+                  <span>Mã Nguồn Thô (HTML)</span>
+                </button>
+                <button id="insSubtabQueryBtn" onclick="switchInspectorSubtab('query')" class="px-3 py-1 rounded-md font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+                  <span>Lọc CSS Selector</span>
+                </button>
+              </div>
+
+              <!-- Tools for Right Pane -->
+              <div class="flex items-center gap-1.5">
+                <button onclick="copyFullHtml()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-medium border border-slate-700 flex items-center gap-1 transition cursor-pointer" title="Sao chép toàn bộ HTML">
+                  <i data-lucide="copy" class="w-3 h-3"></i>
+                  <span id="btnCopyHtmlText">Copy Full</span>
+                </button>
+                <button onclick="downloadHtmlFile()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-medium border border-slate-700 flex items-center gap-1 transition cursor-pointer" title="Tải file .html về máy">
+                  <i data-lucide="download" class="w-3 h-3"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Subtab Content 1: DOM Elements Tree -->
+            <div id="insSubtabTreeContent" class="flex-1 flex flex-col overflow-hidden">
+              <!-- Tree Search Filter -->
+              <div class="px-3 py-2 bg-slate-900/60 border-b border-slate-800/80 flex items-center justify-between gap-2">
+                <div class="relative flex-1">
+                  <input type="text" id="insTreeFilterInput" oninput="filterDomTree()" placeholder="Lọc thẻ trong cây (vd: div, p, .chapter-c, #title)..." class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-7 pr-3 py-1 text-xs text-slate-200 focus:border-cyan-500">
+                  <i data-lucide="search" class="w-3 h-3 text-slate-500 absolute left-2.5 top-2"></i>
+                </div>
+                <div class="flex items-center gap-1 text-[11px] text-slate-400 shrink-0">
+                  <button onclick="expandAllDomTree()" class="px-2 py-0.5 hover:bg-slate-800 text-slate-300 rounded transition cursor-pointer" title="Mở rộng tất cả">Mở hết</button>
+                  <span>|</span>
+                  <button onclick="collapseAllDomTree()" class="px-2 py-0.5 hover:bg-slate-800 text-slate-300 rounded transition cursor-pointer" title="Thu gọn tất cả">Thu gọn</button>
+                </div>
+              </div>
+
+              <!-- Interactive Tree Box -->
+              <div id="inspectorDomTreeView" class="flex-1 p-3 overflow-y-auto font-mono text-xs text-slate-300 space-y-0.5 select-text terminal-scroll">
+                <!-- Dynamically rendered DOM nodes go here -->
+              </div>
+            </div>
+
+            <!-- Subtab Content 2: Raw HTML -->
+            <div id="insSubtabRawContent" class="flex-1 flex flex-col overflow-hidden hidden">
+              <div class="px-3 py-2 bg-slate-900/60 border-b border-slate-800/80 flex items-center justify-between text-xs">
+                <div class="relative flex-1 max-w-xs">
+                  <input type="text" id="inspectorSearchInput" oninput="searchInHtml()" placeholder="Tìm từ khóa trong HTML..." class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-7 pr-3 py-1 text-xs text-slate-200 focus:border-cyan-500">
+                  <i data-lucide="search" class="w-3 h-3 text-slate-500 absolute left-2.5 top-2"></i>
+                </div>
+                <span id="searchMatchCount" class="text-slate-400 font-medium"></span>
+                <label class="flex items-center gap-1.5 cursor-pointer hover:text-slate-200 text-slate-400">
+                  <input type="checkbox" id="inspectorWrapCheck" onchange="toggleCodeWrap()" checked class="text-cyan-500 rounded">
+                  <span>Xuống dòng</span>
+                </label>
+              </div>
+              <textarea id="inspectorHtmlTextarea" readonly class="flex-1 w-full bg-slate-950 text-slate-200 p-3 font-mono text-xs leading-relaxed resize-none focus:outline-none select-text border-0 terminal-scroll" spellcheck="false" wrap="soft"></textarea>
+            </div>
+
+            <!-- Subtab Content 3: CSS Selector Query Tester -->
+            <div id="insSubtabQueryContent" class="flex-1 p-4 overflow-y-auto space-y-3 hidden">
+              <div class="space-y-2">
+                <label class="text-xs font-bold text-slate-300 flex items-center justify-between">
+                  <span>Thử nghiệm CSS Selector:</span>
+                  <span id="selectorMatchBadge" class="text-xs text-amber-400 font-semibold hidden"></span>
+                </label>
+                <div class="flex gap-2">
+                  <input type="text" id="inspectorSelectorInput" placeholder="Nhập CSS Selector (vd: div.reader-demo-body, p, h1)..." class="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-amber-500">
+                  <button onclick="testSelectorInHtml()" class="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="filter" class="w-3.5 h-3.5"></i>
+                    <span>Lọc</span>
+                  </button>
+                </div>
+              </div>
+              <div id="selectorResultsBox" class="space-y-2 text-xs"></div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 5: THƯ VIỆN EPUB -->
+    <div id="tab-library" class="tab-content space-y-6 hidden">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i data-lucide="library" class="w-5 h-5 text-brand-400"></i>
+              <span>Kho File EPUB Đã Cào</span>
+            </h2>
+            <p class="text-xs text-slate-400">Các file sách đã đóng gói sẵn sàng để chép vào máy đọc sách hoặc tải về.</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="loadLibrary()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700">Làm Mới</button>
+            <button onclick="openFolder('epubs')" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-bold">Mở Thư Mục</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-800">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="px-4 py-3">Tên File</th>
+                <th class="px-4 py-3">Dung Lượng</th>
+                <th class="px-4 py-3">Ngày Tạo</th>
+                <th class="px-4 py-3 text-right">Tải Về</th>
+              </tr>
+            </thead>
+            <tbody id="libraryTableBody" class="divide-y divide-slate-800">
+              <tr>
+                <td colspan="4" class="px-4 py-6 text-center text-slate-500">Đang nạp danh sách file...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: CÀI ĐẶT -->
+    <div id="tab-settings" class="tab-content space-y-6 hidden">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6 max-w-2xl">
+        <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="settings" class="w-5 h-5 text-brand-400"></i>
+          <span>Cài Đặt Hệ Thống</span>
+        </h2>
+
+        <!-- QUẢN LÝ TÀI KHOẢN THEO TỪNG WEB -->
+        <div class="space-y-4">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div>
+              <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="key" class="w-4 h-4 text-brand-400"></i>
+                <span>Quản Lý Tài Khoản Đăng Nhập Theo Từng Web</span>
+              </h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">Setup tài khoản & mật khẩu riêng cho từng website truyện (tự động lưu và sử dụng tương ứng khi cào).</p>
+            </div>
+          </div>
+
+          <!-- CHỌN WEBSITE -->
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-4">
+            <div>
+              <label class="text-xs font-bold text-slate-300 block mb-1">Chọn Website Cần Cấu Hình:</label>
+              <div class="flex gap-2">
+                <select id="setAccountDomainSelect" onchange="onAccountDomainChanged()" class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+                  <option value="giatocvuongtai.com">Gia Tộc Vượng Tài (giatocvuongtai.com)</option>
+                  <option value="__new__">➕ Thêm Tài Khoản Cho Website Mới...</option>
+                </select>
+                <button type="button" onclick="prepareNewAccount()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700 transition flex items-center gap-1 cursor-pointer">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                  <span>Thêm Mới</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs font-medium text-slate-300 block mb-1">Domain Website (vd: truyenfull.vn):</label>
+                <input type="text" id="setAccountDomain" placeholder="vd: giatocvuongtai.com" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+              </div>
+              <div>
+                <label class="text-xs font-medium text-slate-300 block mb-1">Tên Hiển Thị:</label>
+                <input type="text" id="setAccountName" placeholder="vd: Gia Tộc Vượng Tài" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs font-medium text-slate-300 block mb-1">Link Đăng Nhập (Login URL):</label>
+              <input type="text" id="setAccountLoginUrl" placeholder="vd: https://giatocvuongtai.com/register hoặc https://domain.com/login" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs font-medium text-slate-300 block mb-1">Email / Tên Đăng Nhập:</label>
+                <input type="text" id="setAccountEmail" placeholder="user@gmail.com hoặc username" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+              </div>
+              <div>
+                <label class="text-xs font-medium text-slate-300 block mb-1">Mật Khẩu:</label>
+                <input type="password" id="setAccountPass" placeholder="••••••••" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+              <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                <input type="checkbox" id="setAccountAutoLogin" class="text-brand-600 rounded">
+                <span>Tự động đăng nhập website này khi cào</span>
+              </label>
+
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="deleteCurrentAccountSetting()" id="btnDeleteAccount" class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-semibold transition hidden cursor-pointer">
+                  <span>Xóa Tài Khoản Này</span>
+                </button>
+                <button type="button" onclick="saveCurrentAccountSetting()" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                  <span>Lưu Tài Khoản Web Này</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- BẢNG TỔNG HỢP CÁC TÀI KHOẢN ĐÃ THIẾT LẬP -->
+          <div class="space-y-2">
+            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Danh Sách Tài Khoản Đã Thiết Lập:</label>
+            <div class="rounded-xl border border-slate-800 overflow-hidden">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 text-[10px] uppercase border-b border-slate-800">
+                  <tr>
+                    <th class="px-3 py-2">Website</th>
+                    <th class="px-3 py-2">Tài Khoản</th>
+                    <th class="px-3 py-2 text-center">Tự Động Đăng Nhập</th>
+                    <th class="px-3 py-2 text-right">Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody id="accountsSummaryTableBody" class="divide-y divide-slate-800 bg-slate-900/60">
+                  <!-- Populated dynamically via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TIMING -->
+        <div class="space-y-4 pt-4 border-t border-slate-800">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Thời Gian Giả Lập Đọc Thật (Chống Bot)</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs font-medium text-slate-300 block mb-1">Tốc Độ Đọc Trung Bình (Từ / Phút):</label>
+              <input type="number" id="setReadingWpm" class="w-32 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+              <span class="text-xs text-slate-500 ml-2">(Mặc định: 650 wpm)</span>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-300 block mb-1">Xác Suất Nghỉ Giữa Chương (%):</label>
+              <input type="number" id="setChapBreakChance" class="w-32 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+              <span class="text-xs text-slate-500 ml-2">%(Mặc định: 5%)</span>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="saveSettings()" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+          <i data-lucide="save" class="w-4 h-4"></i>
+          <span>Lưu Cài Đặt</span>
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- LIVE TERMINAL CONSOLE (COLLAPSIBLE DRAWER) -->
+  <aside id="terminalDrawer" class="bg-slate-950 border-t border-slate-800 transition-all duration-300 z-30 flex flex-col h-72">
+    <!-- Console Toolbar -->
+    <div class="bg-slate-900 px-4 py-2 flex items-center justify-between border-b border-slate-800 text-xs">
+      <div class="flex items-center gap-2">
+        <i data-lucide="terminal" class="w-4 h-4 text-brand-400"></i>
+        <span class="font-bold text-slate-200 tracking-wider">LIVE REAL-TIME CONSOLE</span>
+        <span id="logCounterBadge" class="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400">0 dòng</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <label class="flex items-center gap-1 text-[11px] text-slate-400 cursor-pointer">
+          <input type="checkbox" id="autoScrollCheck" checked class="text-brand-600 rounded">
+          <span>Tự Cuộn</span>
+        </label>
+        <button onclick="clearLogs()" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition">Xóa Log</button>
+        <button onclick="toggleTerminal()" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition">Thu Gọn</button>
+      </div>
+    </div>
+
+    <!-- Logs container -->
+    <div id="terminalLogs" class="flex-1 p-3 overflow-y-auto font-mono text-[11px] space-y-1 terminal-scroll select-text">
+      <div class="text-slate-500">Đang khởi tạo kết nối nhật ký thời gian thực...</div>
+    </div>
+  </aside>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.getAttribute('data-tab') === tabId) {
+          btn.classList.add('bg-brand-600', 'text-white', 'shadow-md', 'shadow-brand-500/20');
+          btn.classList.remove('text-slate-400');
+        } else {
+          btn.classList.remove('bg-brand-600', 'text-white', 'shadow-md', 'shadow-brand-500/20');
+          btn.classList.add('text-slate-400');
+        }
+      });
+
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+      });
+      const activeContent = document.getElementById('tab-' + tabId);
+      if (activeContent) activeContent.classList.remove('hidden');
+
+      if (tabId === 'checkpoints') loadCheckpoints();
+      if (tabId === 'parsers') loadParsers();
+      if (tabId === 'library') loadLibrary();
+      if (tabId === 'settings') loadSettings();
+    }
+
+    // Toggle Crawl Engine Options
+    function toggleEngineOptions() {
+      const val = document.querySelector('input[name="crawlEngine"]:checked').value;
+      const box = document.getElementById('fastDelayBox');
+      if (val === 'web2epub') box.classList.remove('hidden');
+      else box.classList.add('hidden');
+    }
+
+    // Toggle Custom Chap Box & Range Box
+    function toggleCustomChapBox() {
+      const val = document.querySelector('input[name="crawlMode"]:checked').value;
+      const box = document.getElementById('customChapBox');
+      const rangeBox = document.getElementById('rangeChapBox');
+      if (val === '3') {
+        box.classList.remove('hidden');
+        if (rangeBox) rangeBox.classList.add('hidden');
+      } else if (val === 'range') {
+        if (rangeBox) rangeBox.classList.remove('hidden');
+        box.classList.add('hidden');
+      } else {
+        box.classList.add('hidden');
+        if (rangeBox) rangeBox.classList.add('hidden');
+      }
+    }
+
+    // Clipboard Paste
+    async function pasteClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) document.getElementById('crawlUrlInput').value = text.trim();
+      } catch (e) {
+        alert("Vui lòng cấp quyền dán clipboard cho trình duyệt!");
+      }
+    }
+
+    // Open local folder
+    async function openFolder(type) {
+      try {
+        await fetch('/api/open-folder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type })
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Crawl Controls
+    async function startCrawl() {
+      const url = document.getElementById('crawlUrlInput').value.trim();
+      if (!url) {
+        alert("Vui lòng nhập link hoặc slug truyện trước!");
+        return;
+      }
+
+      const mode = document.querySelector('input[name="crawlMode"]:checked').value;
+      const customChap = parseInt(document.getElementById('customChapCount').value) || 20;
+      const rangeStart = parseInt(document.getElementById('rangeStartInput')?.value) || 1;
+      const rangeEnd = parseInt(document.getElementById('rangeEndInput')?.value) || 50;
+      const reverseOrder = document.getElementById('reverseOrderCheck')?.checked || false;
+
+      const splitSize = parseInt(document.getElementById('splitSizeSelect').value) || 0;
+      const engine = document.querySelector('input[name="crawlEngine"]:checked').value;
+      const fastDelay = parseFloat(document.getElementById('fastDelayRange').value) || 0.8;
+      const concurrency = parseInt(document.getElementById('concurrencyRange')?.value) || 3;
+      const customClasses = document.getElementById('customClassesInput').value.trim();
+
+      const overrideTitle = document.getElementById('overrideTitleInput')?.value.trim() || null;
+      const overrideAuthor = document.getElementById('overrideAuthorInput')?.value.trim() || null;
+      const overrideCover = document.getElementById('overrideCoverInput')?.value.trim() || null;
+      const overrideSummary = document.getElementById('overrideSummaryInput')?.value.trim() || null;
+
+      const res = await fetch('/api/crawl/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url, mode, custom_chap: customChap,
+          range_start: rangeStart, range_end: rangeEnd, reverse_order: reverseOrder,
+          split_size: splitSize, engine, fast_delay: fastDelay, concurrency,
+          override_title: overrideTitle, override_author: overrideAuthor,
+          override_cover: overrideCover, override_summary: overrideSummary,
+          custom_classes: customClasses
+        })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.message);
+      }
+    }
+
+    async function retryFailedChapters() {
+      try {
+        const res = await fetch('/api/crawl/retry-failed', { method: 'POST' });
+        const data = await res.json();
+        alert(data.message);
+      } catch (e) {
+        alert("Lỗi khi gửi yêu cầu tải lại: " + e);
+      }
+    }
+
+    async function togglePause() {
+      await fetch('/api/crawl/pause', { method: 'POST' });
+    }
+
+    async function stopCrawl() {
+      if (confirm("Bạn có chắc chắn muốn dừng cào và chốt checkpoint ngay lập tức không?")) {
+        await fetch('/api/crawl/stop', { method: 'POST' });
+      }
+    }
+
+    // Status polling loop
+    let lastStatus = {};
+    async function pollStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const s = await res.json();
+        lastStatus = s;
+
+        const badge = document.getElementById('statusBadge');
+        const badgeText = document.getElementById('statusBadgeText');
+        const btnStart = document.getElementById('btnStartCrawl');
+        const btnPause = document.getElementById('btnPauseCrawl');
+        const btnPauseText = document.getElementById('btnPauseText');
+        const btnStop = document.getElementById('btnStopCrawl');
+        const progressStatus = document.getElementById('progressStatusText');
+        const progressPercent = document.getElementById('progressPercentText');
+        const progressBar = document.getElementById('progressBar');
+
+        if (s.is_crawling) {
+          if (s.is_paused) {
+            badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20";
+            badgeText.innerText = "Tạm dừng";
+            btnPauseText.innerText = "TIẾP TỤC";
+          } else {
+            badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 animate-pulse";
+            badgeText.innerText = "Đang cào: " + (s.current_slug || "truyện");
+            btnPauseText.innerText = "TẠM DỪNG";
+          }
+          btnStart.disabled = true;
+          btnStart.classList.add('opacity-50', 'cursor-not-allowed');
+          btnPause.disabled = false;
+          btnStop.disabled = false;
+        } else {
+          badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+          badgeText.innerText = "Sẵn sàng";
+          btnStart.disabled = false;
+          btnStart.classList.remove('opacity-50', 'cursor-not-allowed');
+          btnPause.disabled = true;
+          btnStop.disabled = true;
+          btnPauseText.innerText = "TẠM DỪNG";
+        }
+
+        progressStatus.innerText = s.status_text;
+        progressPercent.innerText = s.percent + "%";
+        progressBar.style.width = s.percent + "%";
+
+        const failedBox = document.getElementById('failedChaptersBox');
+        if (failedBox) {
+          const failedList = s.failed_chapters || [];
+          if (failedList.length > 0) {
+            failedBox.classList.remove('hidden');
+            const nums = failedList.map(f => f.num).slice(0, 15).join(', ');
+            const extra = failedList.length > 15 ? ` ... (+${failedList.length - 15} chương)` : '';
+            document.getElementById('failedChaptersCount').innerText = `Có ${failedList.length} chương tải lỗi!`;
+            document.getElementById('failedChaptersList').innerText = `Chương: [${nums}${extra}]`;
+          } else {
+            failedBox.classList.add('hidden');
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setInterval(pollStatus, 1500);
+
+    // CHECKPOINTS
+    async function loadCheckpoints() {
+      const res = await fetch('/api/checkpoints');
+      const data = await res.json();
+      const tbody = document.getElementById('checkpointsTableBody');
+      const cps = data.checkpoints || [];
+      document.getElementById('cpCountBadge').innerText = cps.length;
+
+      if (!cps.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-slate-500">Chưa có checkpoint nào được lưu.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = cps.map(cp => {
+        const isUpdating = cp.status === "Đang cập nhật";
+        const stBadge = isUpdating
+          ? `<span class="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">🔄 Đang cập nhật</span>`
+          : `<span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">✅ Hoàn thành</span>`;
+        const pct = cp.total_count ? ((cp.crawled_count / cp.total_count) * 100).toFixed(1) : 0;
+
+        return `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="px-4 py-3 font-medium text-slate-200">
+              <div class="font-bold">${escapeHtml(cp.name)}</div>
+              <div class="text-[10px] text-slate-400 font-mono">${escapeHtml(cp.slug)}</div>
+            </td>
+            <td class="px-4 py-3">${stBadge}</td>
+            <td class="px-4 py-3">
+              <div class="font-bold text-slate-200">${cp.crawled_count} / ${cp.total_count} (${pct}%)</div>
+              <div class="w-24 h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
+                <div class="h-full bg-brand-500" style="width: ${pct}%"></div>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-slate-400 font-mono text-[11px]">${cp.saved_at}</td>
+            <td class="px-4 py-3 text-right space-x-2">
+              <button onclick="resumeCheckpoint('${cp.slug}', '${escapeHtml(cp.story_url)}')" class="px-2.5 py-1 bg-brand-600/20 hover:bg-brand-600/30 text-brand-400 border border-brand-500/30 rounded-lg text-[11px] font-bold transition">Cào Tiếp</button>
+              <button onclick="deleteCheckpoint('${cp.slug}')" class="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-[11px] font-bold transition">Xóa</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function resumeCheckpoint(slug, url) {
+      document.getElementById('crawlUrlInput').value = url || slug;
+      switchTab('crawler');
+    }
+
+    async function deleteCheckpoint(slug) {
+      if (confirm(`Bạn có chắc muốn xóa checkpoint của truyện '${slug}'?`)) {
+        await fetch('/api/checkpoints/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug })
+        });
+        loadCheckpoints();
+      }
+    }
+
+    // EPUB CLEANER & DRAG/DROP
+    let selectedCleanerFile = null;
+    const dropZone = document.getElementById('dropZone');
+
+    dropZone.addEventListener('click', () => document.getElementById('cleanerFileInput').click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-brand-400', 'bg-brand-500/5'); });
+    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-brand-400', 'bg-brand-500/5'); });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-brand-400', 'bg-brand-500/5');
+      if (e.dataTransfer.files.length) {
+        selectedCleanerFile = e.dataTransfer.files[0];
+        showSelectedCleanerFile();
+      }
+    });
+
+    function handleFileSelected(input) {
+      if (input.files.length) {
+        selectedCleanerFile = input.files[0];
+        showSelectedCleanerFile();
+      }
+    }
+
+    function showSelectedCleanerFile() {
+      if (selectedCleanerFile) {
+        const fn = document.getElementById('selectedFileName');
+        fn.innerText = `📄 Đã chọn: ${selectedCleanerFile.name} (${(selectedCleanerFile.size / (1024*1024)).toFixed(2)} MB)`;
+        fn.classList.remove('hidden');
+      }
+    }
+
+    async function runCleaner() {
+      if (!selectedCleanerFile) {
+        alert("Vui lòng kéo thả hoặc chọn 1 file .epub cần làm sạch!");
+        return;
+      }
+
+      const btn = document.getElementById('btnRunCleaner');
+      btn.disabled = true;
+      btn.innerText = "⏳ ĐANG XỬ LÝ & LÀM SẠCH...";
+
+      const formData = new FormData();
+      formData.append('file', selectedCleanerFile);
+      formData.append('custom_classes', document.getElementById('cleanerCustomClasses').value);
+
+      try {
+        const res = await fetch('/api/cleaner/process', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          const resBox = document.getElementById('cleanerResultBox');
+          resBox.classList.remove('hidden');
+          document.getElementById('cleanerResultMsg').innerText = `Làm sạch thành công: ${data.filename}`;
+          document.getElementById('cleanerDownloadBtn').href = `/api/cleaner/download/${encodeURIComponent(data.filename)}`;
+          document.getElementById('cleanerStatsText').innerText = `Đã quét ${data.stats.total_chapters || 0} chương, diệt ${data.stats.total_hidden_tags_removed || 0} thẻ ẩn và ${data.stats.total_spam_removed || 0} watermark rác.`;
+        } else {
+          alert("Lỗi: " + data.message);
+        }
+      } catch (e) {
+        alert("Lỗi kết nối máy chủ: " + e);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i><span>BẮT ĐẦU XỬ LÝ & LÀM SẠCH EPUB</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    // SITE PARSERS (WEBTOEPUB STYLE)
+    let siteParsers = [];
+    async function loadParsers() {
+      const res = await fetch('/api/parsers');
+      const data = await res.json();
+      siteParsers = data.parsers || [];
+      const sel = document.getElementById('parserProfileSelect');
+      sel.innerHTML = `<option value="">-- Chọn Website Đã Lưu --</option>` +
+        siteParsers.map(p => `<option value="${escapeHtml(p.domain)}">${escapeHtml(p.name)} (${escapeHtml(p.domain)})</option>`).join('');
+    }
+
+    function updatePaginationUI() {
+      const type = document.getElementById('pPaginationType').value;
+      const help = document.getElementById('paginationHelpText');
+      const wNext = document.getElementById('wrapperNextPage');
+      const wPat = document.getElementById('wrapperPaginationPattern');
+      
+      if (type === 'auto') {
+        help.innerHTML = `⚡ <b>Tự động (Auto Detect)</b>: Tự quét nút Sau/Tiếp, liên kết rel="next", số trang liền kề (1, 2, 3...) và nút Xem Thêm.`;
+        if (wNext) wNext.classList.remove('opacity-40');
+        if (wPat) wPat.classList.remove('opacity-40');
+      } else if (type === 'next_button') {
+        help.innerHTML = `👉 <b>Nút Chuyển Trang</b>: Nhập selector CSS hoặc XPath của nút 'Sau' / 'Trang kế' (vd: <code>.pagination .next a</code> hoặc <code>//a[contains(text(),'Sau')]</code>). Hệ thống sẽ chuyển trang theo link hoặc click.`;
+        if (wNext) wNext.classList.remove('opacity-40');
+        if (wPat) wPat.classList.add('opacity-40');
+      } else if (type === 'url_pattern') {
+        help.innerHTML = `🔗 <b>Mẫu URL (URL Pattern)</b>: Điền định dạng URL phân trang như <code>trang-{page}/</code> hoặc <code>?page={page}</code>. Máy sẽ tự thay {page} bằng số 1, 2, 3... để cào toàn bộ danh sách chương.`;
+        if (wNext) wNext.classList.add('opacity-40');
+        if (wPat) wPat.classList.remove('opacity-40');
+      } else if (type === 'load_more') {
+        help.innerHTML = `🔄 <b>Nút Tải Thêm (Load More)</b>: Nhập selector của nút 'Xem thêm chương' (vd: <code>.btn-loadmore</code> hoặc <code>//button[contains(text(),'Xem thêm')]</code>). Máy sẽ click liên tục trên cùng 1 trang cho tới khi hết chương.`;
+        if (wNext) wNext.classList.remove('opacity-40');
+        if (wPat) wPat.classList.add('opacity-40');
+      }
+    }
+
+    function loadSelectedParserProfile() {
+      const dom = document.getElementById('parserProfileSelect').value;
+      const p = siteParsers.find(x => x.domain === dom);
+      if (p) {
+        document.getElementById('pDomain').value = p.domain || "";
+        document.getElementById('pName').value = p.name || "";
+        document.getElementById('pStoryTitle').value = p.story_title_sel || "";
+        document.getElementById('pAuthor').value = p.author_sel || "";
+        document.getElementById('pCover').value = p.cover_sel || "";
+        document.getElementById('pSummary').value = p.summary_sel || "";
+        document.getElementById('pChapterList').value = p.chapter_list_sel || "";
+        document.getElementById('pNextPage').value = p.next_page_sel || "";
+        document.getElementById('pChapterTitle').value = p.chapter_title_sel || "";
+        document.getElementById('pChapterContent').value = p.chapter_content_sel || "";
+        document.getElementById('pLoginUrl').value = p.login_url || "";
+        document.getElementById('pLoginEmail').value = p.login_email || "";
+        document.getElementById('pLoginPass').value = p.login_password || "";
+        document.getElementById('pAutoLogin').checked = !!p.auto_login;
+        document.getElementById('pPaginationType').value = p.pagination_type || "auto";
+        document.getElementById('pPaginationPattern').value = p.pagination_pattern || "";
+        document.getElementById('pMaxPaginationPages').value = p.max_pagination_pages || "";
+        updatePaginationUI();
+      }
+    }
+
+    function newParserProfile() {
+      document.getElementById('pDomain').value = "";
+      document.getElementById('pName').value = "";
+      document.getElementById('pStoryTitle').value = "";
+      document.getElementById('pAuthor').value = "";
+      document.getElementById('pCover').value = "";
+      document.getElementById('pSummary').value = "";
+      document.getElementById('pChapterList').value = "";
+      document.getElementById('pNextPage').value = "";
+      document.getElementById('pChapterTitle').value = "";
+      document.getElementById('pChapterContent').value = "";
+      document.getElementById('pLoginUrl').value = "";
+      document.getElementById('pLoginEmail').value = "";
+      document.getElementById('pLoginPass').value = "";
+      document.getElementById('pAutoLogin').checked = false;
+      document.getElementById('pPaginationType').value = "auto";
+      document.getElementById('pPaginationPattern').value = "";
+      document.getElementById('pMaxPaginationPages').value = "";
+      updatePaginationUI();
+    }
+
+    async function saveParserProfile() {
+      const cfg = {
+        domain: document.getElementById('pDomain').value.trim(),
+        name: document.getElementById('pName').value.trim(),
+        story_title_sel: document.getElementById('pStoryTitle').value.trim(),
+        author_sel: document.getElementById('pAuthor').value.trim(),
+        cover_sel: document.getElementById('pCover').value.trim(),
+        summary_sel: document.getElementById('pSummary').value.trim(),
+        chapter_list_sel: document.getElementById('pChapterList').value.trim(),
+        next_page_sel: document.getElementById('pNextPage').value.trim(),
+        chapter_title_sel: document.getElementById('pChapterTitle').value.trim(),
+        chapter_content_sel: document.getElementById('pChapterContent').value.trim(),
+        login_url: document.getElementById('pLoginUrl').value.trim(),
+        login_email: document.getElementById('pLoginEmail').value.trim(),
+        login_password: document.getElementById('pLoginPass').value.trim(),
+        auto_login: document.getElementById('pAutoLogin').checked,
+        pagination_type: document.getElementById('pPaginationType').value,
+        pagination_pattern: document.getElementById('pPaginationPattern').value.trim(),
+        max_pagination_pages: parseInt(document.getElementById('pMaxPaginationPages').value) || 0,
+      };
+      if (!cfg.domain) { alert("Domain website không được để trống!"); return; }
+
+      const res = await fetch('/api/parsers/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cfg)
+      });
+      const data = await res.json();
+      alert(data.message);
+      loadParsers();
+    }
+
+    async function deleteParserProfile() {
+      const dom = document.getElementById('pDomain').value.trim();
+      if (!dom) return;
+      if (confirm(`Bạn có chắc muốn xóa cấu hình '${dom}'?`)) {
+        const res = await fetch('/api/parsers/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domain: dom })
+        });
+        const data = await res.json();
+        alert(data.message);
+        loadParsers();
+        newParserProfile();
+      }
+    }
+
+    async function runAutoDetect() {
+      const url = document.getElementById('parserSampleUrl').value.trim();
+      if (!url) { alert("Vui lòng nhập URL truyện mẫu!"); return; }
+
+      const res = await fetch('/api/parsers/auto-detect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      if (data.success && data.config) {
+        const c = data.config;
+        document.getElementById('pDomain').value = c.domain || "";
+        document.getElementById('pName').value = c.name || "";
+        document.getElementById('pStoryTitle').value = c.story_title_sel || "";
+        document.getElementById('pAuthor').value = c.author_sel || "";
+        document.getElementById('pCover').value = c.cover_sel || "";
+        document.getElementById('pSummary').value = c.summary_sel || "";
+        document.getElementById('pChapterList').value = c.chapter_list_sel || "";
+        document.getElementById('pNextPage').value = c.next_page_sel || "";
+        document.getElementById('pChapterTitle').value = c.chapter_title_sel || "";
+        document.getElementById('pChapterContent').value = c.chapter_content_sel || "";
+        document.getElementById('pPaginationType').value = c.pagination_type || "auto";
+        document.getElementById('pPaginationPattern').value = c.pagination_pattern || "";
+        document.getElementById('pMaxPaginationPages').value = c.max_pagination_pages || "";
+        updatePaginationUI();
+        alert("Đã tự động dò tìm cấu trúc DOM thành công! Bạn có thể bấm 'Kiểm Tra Thử' để xem kết quả.");
+      } else {
+        alert("Lỗi dò tìm: " + data.message);
+      }
+    }
+
+    // =========================================================================
+    // LIVE CHAPTER READER & FORMAT PREVIEW (WEBTOEPUB IN-BROWSER INSPECTOR)
+    // =========================================================================
+    let currentTestResultData = null;
+    let currentReaderFontSize = 16;
+    let currentReaderTheme = 'dark';
+    let currentTestChapterNum = 1;
+    let currentTestChapterUrl = "";
+
+    async function testParserProfile(chapNum = 1, chapUrl = "") {
+      const url = document.getElementById('parserSampleUrl').value.trim();
+      if (!url && !chapUrl) { 
+        alert("Vui lòng nhập URL truyện mẫu hoặc URL chương để kiểm tra!"); 
+        return; 
+      }
+
+      const cfg = {
+        domain: document.getElementById('pDomain').value.trim(),
+        name: document.getElementById('pName').value.trim(),
+        story_title_sel: document.getElementById('pStoryTitle').value.trim(),
+        author_sel: document.getElementById('pAuthor').value.trim(),
+        cover_sel: document.getElementById('pCover').value.trim(),
+        summary_sel: document.getElementById('pSummary').value.trim(),
+        chapter_list_sel: document.getElementById('pChapterList').value.trim(),
+        next_page_sel: document.getElementById('pNextPage').value.trim(),
+        chapter_title_sel: document.getElementById('pChapterTitle').value.trim(),
+        chapter_content_sel: document.getElementById('pChapterContent').value.trim(),
+        login_url: document.getElementById('pLoginUrl').value.trim(),
+        login_email: document.getElementById('pLoginEmail').value.trim(),
+        login_password: document.getElementById('pLoginPass').value.trim(),
+        auto_login: document.getElementById('pAutoLogin').checked,
+        pagination_type: document.getElementById('pPaginationType').value,
+        pagination_pattern: document.getElementById('pPaginationPattern').value.trim(),
+        max_pagination_pages: parseInt(document.getElementById('pMaxPaginationPages').value) || 0,
+      };
+
+      const btn = document.querySelector('button[onclick="testParserProfile()"]');
+      const origText = btn ? btn.innerHTML : "";
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Đang bóc tách & hiển thị định dạng...</span>`;
+        lucide.createIcons();
+      }
+
+      try {
+        const res = await fetch('/api/parsers/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            url: url, 
+            chapter_url: chapUrl, 
+            chapter_num: chapNum, 
+            config: cfg 
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          currentTestResultData = data;
+          currentTestChapterNum = data.current_chapter_num || chapNum || 1;
+          currentTestChapterUrl = data.current_chapter_url || chapUrl || "";
+
+          // Populate Reader UI Elements
+          const modal = document.getElementById('testReaderModal');
+          modal.classList.remove('hidden');
+
+          // Story Meta & Cover
+          const storyInfo = data.story_info || {};
+          const storyTitle = storyInfo.name || cfg.name || "Truyện Đọc Thử";
+          const storyAuthor = storyInfo.author || "Đang cập nhật";
+          const coverImg = document.getElementById('testReaderCoverImg');
+          if (storyInfo.cover_url) {
+            coverImg.src = storyInfo.cover_url;
+            coverImg.classList.remove('hidden');
+          } else {
+            coverImg.classList.add('hidden');
+          }
+
+          document.getElementById('testReaderStoryName').innerText = storyTitle;
+          document.getElementById('testReaderAuthor').innerText = storyAuthor;
+          document.getElementById('testReaderCurrentTitle').innerText = data.chapter_title || `Chương ${currentTestChapterNum}`;
+
+          document.getElementById('readerPaperStory').innerText = storyTitle;
+          document.getElementById('readerPaperHeading').innerText = data.chapter_title || `Chương ${currentTestChapterNum}`;
+          document.getElementById('readerPaperAuthor').innerText = `Tác giả: ${storyAuthor}`;
+
+          // Stats
+          const stats = data.stats || {};
+          document.getElementById('statParagraphs').innerText = stats.paragraphs_count || 0;
+          document.getElementById('statWords').innerText = (stats.words_count || 0).toLocaleString();
+          document.getElementById('statChars').innerText = (stats.chars_count || 0).toLocaleString();
+          document.getElementById('statImages').innerText = stats.images_count || 0;
+
+          // Pass Badge
+          const passBadge = document.getElementById('testReaderPassBadge');
+          if (stats.is_pass_chapter) {
+            passBadge.className = "px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold";
+            passBadge.innerText = "ℹ️ Chương có chữ 'pass' (Nội dung trống)";
+          } else {
+            passBadge.className = "px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold";
+            passBadge.innerText = "✅ Đạt chuẩn định dạng EPUB";
+          }
+
+          // Render Chapter Body HTML
+          document.getElementById('readerPaperContent').innerHTML = data.chapter_html || "<p class='italic text-slate-400'>Không có nội dung chương</p>";
+          document.getElementById('testCleanHtmlTextarea').value = data.chapter_html || "";
+
+          // Populate Chapter Select Dropdown
+          const chapters = data.chapters || [];
+          document.getElementById('btnReaderChapsCount').innerText = `DS Chương (${data.chapter_count || chapters.length})`;
+          document.getElementById('totalChapsBadge').innerText = `${data.chapter_count || chapters.length} chương`;
+
+          const sel = document.getElementById('readerChapterSelect');
+          if (chapters.length > 0) {
+            sel.innerHTML = chapters.map(c => 
+              `<option value="${c.num}" data-url="${escapeHtml(c.url)}" ${c.num === currentTestChapterNum ? 'selected' : ''}>Chương ${c.num}: ${escapeHtml(c.title)}</option>`
+            ).join('');
+          } else {
+            sel.innerHTML = `<option value="${currentTestChapterNum}">${data.chapter_title || 'Chương hiện tại'}</option>`;
+          }
+
+          // Navigation indicators
+          const totalCount = data.chapter_count || chapters.length || 1;
+          document.getElementById('readerBottomIndicator').innerText = `${currentTestChapterNum} / ${totalCount}`;
+
+          const btnPrev = document.getElementById('btnPrevChapter');
+          const btnNext = document.getElementById('btnNextChapter');
+          btnPrev.disabled = (currentTestChapterNum <= 1);
+          btnPrev.style.opacity = (currentTestChapterNum <= 1) ? '0.4' : '1';
+          btnNext.disabled = (currentTestChapterNum >= totalCount);
+          btnNext.style.opacity = (currentTestChapterNum >= totalCount) ? '0.4' : '1';
+
+          // Render Chapter List Table
+          renderReaderChapterListTable(chapters);
+
+          // Scroll to Reader smoothly
+          modal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          lucide.createIcons();
+        } else {
+          alert("Lỗi kiểm tra bóc tách: " + data.message);
+        }
+      } catch (e) {
+        alert("Lỗi kết nối máy chủ: " + e);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = origText;
+          lucide.createIcons();
+        }
+      }
+    }
+
+    function switchReaderTab(tab) {
+      const btnView = document.getElementById('btnReaderModeView');
+      const btnCode = document.getElementById('btnReaderModeCode');
+      const btnList = document.getElementById('btnReaderModeList');
+
+      const contentBook = document.getElementById('readerTabContentBook');
+      const contentCode = document.getElementById('readerTabContentCode');
+      const contentList = document.getElementById('readerTabContentList');
+
+      // Reset styles
+      [btnView, btnCode, btnList].forEach(b => {
+        b.className = "px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5 cursor-pointer";
+      });
+      contentBook.classList.add('hidden');
+      contentCode.classList.add('hidden');
+      contentList.classList.add('hidden');
+
+      if (tab === 'view') {
+        btnView.className = "px-3 py-1.5 rounded-lg font-bold text-cyan-400 bg-slate-800 shadow-sm transition flex items-center gap-1.5 cursor-pointer";
+        contentBook.classList.remove('hidden');
+      } else if (tab === 'code') {
+        btnCode.className = "px-3 py-1.5 rounded-lg font-bold text-cyan-400 bg-slate-800 shadow-sm transition flex items-center gap-1.5 cursor-pointer";
+        contentCode.classList.remove('hidden');
+      } else if (tab === 'list') {
+        btnList.className = "px-3 py-1.5 rounded-lg font-bold text-cyan-400 bg-slate-800 shadow-sm transition flex items-center gap-1.5 cursor-pointer";
+        contentList.classList.remove('hidden');
+      }
+      lucide.createIcons();
+    }
+
+    function setReaderPaperTheme(theme) {
+      const box = document.getElementById('readerPaperBox');
+      box.classList.remove('reader-paper-dark', 'reader-paper-sepia', 'reader-paper-white');
+      box.classList.add(`reader-paper-${theme}`);
+      currentReaderTheme = theme;
+    }
+
+    function changeReaderFontSize(delta) {
+      currentReaderFontSize = Math.min(32, Math.max(12, currentReaderFontSize + delta));
+      document.getElementById('readerPaperContent').style.fontSize = currentReaderFontSize + 'px';
+      document.getElementById('readerFontSizeLabel').innerText = currentReaderFontSize + 'px';
+    }
+
+    function onReaderChapterSelectChange() {
+      const sel = document.getElementById('readerChapterSelect');
+      const opt = sel.options[sel.selectedIndex];
+      const num = parseInt(opt.value) || 1;
+      const url = opt.getAttribute('data-url') || "";
+      testParserProfile(num, url);
+    }
+
+    function navigateReaderChapter(delta) {
+      const targetNum = currentTestChapterNum + delta;
+      if (targetNum < 1) return;
+      if (currentTestResultData && currentTestResultData.chapters) {
+        const found = currentTestResultData.chapters.find(c => c.num === targetNum);
+        if (found) {
+          testParserProfile(targetNum, found.url);
+          return;
+        }
+      }
+      testParserProfile(targetNum);
+    }
+
+    function renderReaderChapterListTable(chapters) {
+      const tbody = document.getElementById('readerChapterListTableBody');
+      if (!tbody) return;
+      if (!chapters || !chapters.length) {
+        tbody.innerHTML = `<tr><td colspan="3" class="px-3 py-4 text-center text-slate-500 italic">Không có danh sách chương (hoặc đang test link chương đơn).</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = chapters.map(c => `
+        <tr class="hover:bg-slate-900 transition ${c.num === currentTestChapterNum ? 'bg-cyan-500/10 font-bold text-cyan-300' : ''}">
+          <td class="px-3 py-2 text-center text-slate-400 font-mono text-xs">${c.num}</td>
+          <td class="px-3 py-2 text-slate-200 text-xs">
+            <span>${escapeHtml(c.title)}</span>
+          </td>
+          <td class="px-3 py-2 text-right">
+            <button onclick="loadSpecificChapterFromList(${c.num}, '${escapeHtml(c.url)}')" class="px-2.5 py-1 bg-slate-800 hover:bg-cyan-600 hover:text-white text-slate-300 rounded text-[11px] font-medium transition cursor-pointer">
+              Đọc Thử
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function loadSpecificChapterFromList(num, url) {
+      switchReaderTab('view');
+      testParserProfile(num, url);
+    }
+
+    async function copyCleanedHtml() {
+      const ta = document.getElementById('testCleanHtmlTextarea');
+      if (!ta || !ta.value) return;
+      try {
+        await navigator.clipboard.writeText(ta.value);
+        const btn = document.getElementById('btnCopyCleanHtmlText');
+        const orig = btn.innerText;
+        btn.innerText = "✅ Đã Copy!";
+        setTimeout(() => { btn.innerText = orig; }, 2000);
+      } catch (e) {
+        ta.select();
+        document.execCommand('copy');
+        alert("Đã sao chép HTML!");
+      }
+    }
+
+    function downloadTestChapterHtml() {
+      const ta = document.getElementById('testCleanHtmlTextarea');
+      if (!ta || !ta.value) return;
+      const htmlContent = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>${escapeHtml(document.getElementById('testReaderCurrentTitle').innerText)}</title>
+  <style>
+    body { font-family: 'Lora', Georgia, serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.85; text-align: justify; background: #faf9f5; color: #222; }
+    h1 { text-align: center; font-family: sans-serif; }
+    p { margin-bottom: 1.2em; text-indent: 1.5em; }
+    img { max-width: 100%; height: auto; display: block; margin: 1.5em auto; }
+  </style>
+</head>
+<body>
+  <h1>${escapeHtml(document.getElementById('testReaderCurrentTitle').innerText)}</h1>
+  ${ta.value}
+</body>
+</html>`;
+
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `test_chapter_${currentTestChapterNum}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    }
+
+    function closeReaderModal() {
+      document.getElementById('testReaderModal').classList.add('hidden');
+    }
+
+    function applyParserAndCrawl() {
+      const url = document.getElementById('parserSampleUrl').value.trim();
+      if (url) {
+        document.getElementById('crawlUrlInput').value = url;
+      }
+      switchTab('crawler');
+    }
+
+    // LIBRARY
+    async function loadLibrary() {
+      const res = await fetch('/api/epubs');
+      const data = await res.json();
+      const tbody = document.getElementById('libraryTableBody');
+      const files = data.files || [];
+
+      if (!files.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">Chưa có file EPUB nào trong thư mục.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = files.map(f => `
+        <tr class="hover:bg-slate-800/40 transition">
+          <td class="px-4 py-3 font-semibold text-slate-200">${escapeHtml(f.filename)}</td>
+          <td class="px-4 py-3 text-slate-400">${f.size_mb} MB</td>
+          <td class="px-4 py-3 text-slate-400 font-mono text-[11px]">${f.modified}</td>
+          <td class="px-4 py-3 text-right">
+            <a href="/api/epubs/download/${encodeURIComponent(f.filename)}" class="px-3 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-bold inline-flex items-center gap-1 transition">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Tải</span>
+            </a>
+          </td>
+        </tr>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // =========================================================================
+    // DEVTOOLS DUAL-PANE HTML INSPECTOR (2-WAY BIDIRECTIONAL DEVTOOLS)
+    // =========================================================================
+    let currentFetchedHtml = "";
+    let currentFetchedUrl = "";
+    let currentActiveSelector = "";
+    let currentInsId = null;
+    let insElementsMap = new Map(); // insId -> { id, tag, selector, classes, text }
+    let preparedIframeHtml = "";
+
+    async function pasteToInspector() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) document.getElementById('inspectorUrlInput').value = text.trim();
+      } catch (e) {
+        alert("Vui lòng cấp quyền dán clipboard cho trình duyệt!");
+      }
+    }
+
+    // Generator for optimal clean CSS Selector
+    function computeOptimalSelector(el) {
+      if (!el || el.nodeType !== Node.ELEMENT_NODE) return '';
+      const tag = el.tagName.toLowerCase();
+      if (tag === 'body') return 'body';
+      if (tag === 'html') return 'html';
+
+      // 1. Check ID
+      if (el.id && /^[A-Za-z][A-Za-z0-9_-]*$/.test(el.id)) {
+        return '#' + el.id;
+      }
+
+      // 2. Check meaningful class names
+      if (el.classList && el.classList.length > 0) {
+        const valid = Array.from(el.classList).filter(c => 
+          !c.startsWith('ins_') && !c.includes(':') && !c.includes('[') && !c.includes('/') && /^[A-Za-z0-9_-]+$/.test(c)
+        );
+        if (valid.length > 0) {
+          return tag + '.' + valid.slice(0, 2).join('.');
+        }
+      }
+
+      // 3. Parent hierarchy
+      if (el.parentElement && el.parentElement.tagName.toLowerCase() !== 'body') {
+        const parentSel = computeOptimalSelector(el.parentElement);
+        const siblings = Array.from(el.parentElement.children).filter(s => s.tagName === el.tagName);
+        if (siblings.length > 1) {
+          const idx = siblings.indexOf(el) + 1;
+          return `${parentSel} > ${tag}:nth-of-type(${idx})`;
+        }
+        return `${parentSel} > ${tag}`;
+      }
+
+      return tag;
+    }
+
+    // Build DOM Tree HTML representation recursively
+    function buildTreeNodeHtml(el, depth = 0) {
+      if (!el || el.nodeType !== Node.ELEMENT_NODE) return '';
+      const insId = el.getAttribute('data-ins-id');
+      const tag = el.tagName.toLowerCase();
+
+      if (tag === 'script' || tag === 'style') return '';
+
+      const idAttr = el.id ? ` <span class="dom-attr-name">id=</span><span class="dom-attr-val">"${escapeHtml(el.id)}"</span>` : '';
+      const classList = Array.from(el.classList || []).filter(c => !c.startsWith('ins_'));
+      const classAttr = classList.length ? ` <span class="dom-attr-name">class=</span><span class="dom-attr-val">"${escapeHtml(classList.join(' '))}"</span>` : '';
+
+      const children = Array.from(el.children).filter(c => {
+        const t = c.tagName.toLowerCase();
+        return t !== 'script' && t !== 'style';
+      });
+      const hasChildren = children.length > 0;
+      const textContent = (el.textContent || '').trim();
+      const isLeafWithShortText = !hasChildren && textContent.length > 0 && textContent.length < 90;
+      const indentPx = depth * 14;
+
+      if (isLeafWithShortText) {
+        return `
+          <div class="tree-row flex items-baseline" data-tree-ins-id="${insId}" style="padding-left: ${indentPx}px;">
+            <span class="dom-toggle-btn opacity-30">•</span>
+            <span class="dom-node" onclick="selectFromTree('${insId}')" onmouseenter="hoverFromTree('${insId}')" onmouseleave="unhoverFromTree('${insId}')">
+              <span class="dom-tag">&lt;${tag}</span>${idAttr}${classAttr}<span class="dom-tag">&gt;</span>
+              <span class="dom-text">${escapeHtml(textContent)}</span>
+              <span class="dom-tag">&lt;/${tag}&gt;</span>
+            </span>
+          </div>
+        `;
+      }
+
+      if (!hasChildren && !textContent) {
+        return `
+          <div class="tree-row flex items-baseline" data-tree-ins-id="${insId}" style="padding-left: ${indentPx}px;">
+            <span class="dom-toggle-btn opacity-30">•</span>
+            <span class="dom-node" onclick="selectFromTree('${insId}')" onmouseenter="hoverFromTree('${insId}')" onmouseleave="unhoverFromTree('${insId}')">
+              <span class="dom-tag">&lt;${tag}</span>${idAttr}${classAttr}<span class="dom-tag">&gt;&lt;/${tag}&gt;</span>
+            </span>
+          </div>
+        `;
+      }
+
+      let childHtml = '';
+      for (const child of children) {
+        childHtml += buildTreeNodeHtml(child, depth + 1);
+      }
+
+      return `
+        <div class="tree-group" data-tree-group-id="${insId}">
+          <div class="tree-row flex items-baseline" data-tree-ins-id="${insId}" style="padding-left: ${indentPx}px;">
+            <span class="dom-toggle-btn" id="tree_toggle_${insId}" onclick="toggleTreeNode(event, '${insId}')">▼</span>
+            <span class="dom-node" onclick="selectFromTree('${insId}')" onmouseenter="hoverFromTree('${insId}')" onmouseleave="unhoverFromTree('${insId}')">
+              <span class="dom-tag">&lt;${tag}</span>${idAttr}${classAttr}<span class="dom-tag">&gt;</span>
+              ${hasChildren ? `<span class="dom-text text-[10px] opacity-60">(${children.length})</span>` : ''}
+            </span>
+          </div>
+          <div id="tree_children_${insId}" class="tree-children">
+            ${childHtml}
+          </div>
+          <div class="tree-row flex items-baseline" style="padding-left: ${indentPx + 14}px;">
+            <span class="dom-node opacity-60"><span class="dom-tag">&lt;/${tag}&gt;</span></span>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleTreeNode(e, insId) {
+      if (e) e.stopPropagation();
+      const childrenEl = document.getElementById('tree_children_' + insId);
+      const toggleBtn = document.getElementById('tree_toggle_' + insId);
+      if (!childrenEl || !toggleBtn) return;
+      if (childrenEl.style.display === 'none') {
+        childrenEl.style.display = 'block';
+        toggleBtn.innerText = '▼';
+      } else {
+        childrenEl.style.display = 'none';
+        toggleBtn.innerText = '▶';
+      }
+    }
+
+    function expandAllDomTree() {
+      document.querySelectorAll('#inspectorDomTreeView .tree-children').forEach(el => el.style.display = 'block');
+      document.querySelectorAll('#inspectorDomTreeView .dom-toggle-btn').forEach(btn => {
+        if (btn.innerText === '▶') btn.innerText = '▼';
+      });
+    }
+
+    function collapseAllDomTree() {
+      document.querySelectorAll('#inspectorDomTreeView .tree-children').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('#inspectorDomTreeView .dom-toggle-btn').forEach(btn => {
+        if (btn.innerText === '▼') btn.innerText = '▶';
+      });
+    }
+
+    function filterDomTree() {
+      const q = document.getElementById('insTreeFilterInput').value.trim().toLowerCase();
+      const rows = document.querySelectorAll('#inspectorDomTreeView .tree-row');
+      if (!q) {
+        rows.forEach(r => r.style.display = '');
+        return;
+      }
+      rows.forEach(r => {
+        const text = r.innerText.toLowerCase();
+        if (text.includes(q)) {
+          r.style.display = '';
+          // Ensure parent is visible
+          let p = r.closest('.tree-children');
+          while (p) {
+            p.style.display = 'block';
+            p = p.parentElement ? p.parentElement.closest('.tree-children') : null;
+          }
+        } else {
+          r.style.display = 'none';
+        }
+      });
+    }
+
+    // Direction 1: User clicks an element in the Rendered Iframe
+    window.onIframeElementSelected = function(insId) {
+      const meta = insElementsMap.get(insId);
+      if (!meta) return;
+
+      document.getElementById('insSelectedTag').innerText = meta.tag;
+      document.getElementById('insSelectedSelector').innerText = meta.selector;
+      currentActiveSelector = meta.selector;
+      currentInsId = insId;
+
+      document.querySelectorAll('#inspectorDomTreeView .selected-node').forEach(el => el.classList.remove('selected-node'));
+      const targetRow = document.querySelector(`[data-tree-ins-id="${insId}"] .dom-node`);
+      if (targetRow) {
+        targetRow.classList.add('selected-node');
+
+        // Expand any collapsed ancestor containers
+        let parent = targetRow.closest('.tree-children');
+        while (parent) {
+          parent.style.display = 'block';
+          const parentId = parent.id.replace('tree_children_', '');
+          const btn = document.getElementById('tree_toggle_' + parentId);
+          if (btn) btn.innerText = '▼';
+          parent = parent.parentElement ? parent.parentElement.closest('.tree-children') : null;
+        }
+
+        targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    };
+
+    // Direction 2: User clicks a node in the Right DOM tree
+    function selectFromTree(insId) {
+      const meta = insElementsMap.get(insId);
+      if (!meta) return;
+
+      document.querySelectorAll('#inspectorDomTreeView .selected-node').forEach(el => el.classList.remove('selected-node'));
+      const targetRow = document.querySelector(`[data-tree-ins-id="${insId}"] .dom-node`);
+      if (targetRow) targetRow.classList.add('selected-node');
+
+      document.getElementById('insSelectedTag').innerText = meta.tag;
+      document.getElementById('insSelectedSelector').innerText = meta.selector;
+      currentActiveSelector = meta.selector;
+      currentInsId = insId;
+
+      // Notify iframe
+      const iframe = document.getElementById('inspectorIframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'SELECT_ELEMENT', insId }, '*');
+      }
+    }
+
+    function hoverFromTree(insId) {
+      const iframe = document.getElementById('inspectorIframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'HOVER_ELEMENT', insId }, '*');
+      }
+    }
+
+    function unhoverFromTree(insId) {
+      const iframe = document.getElementById('inspectorIframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'UNHOVER_ELEMENT' }, '*');
+      }
+    }
+
+    // MAIN FETCH FUNCTION
+    async function fetchPageHtml() {
+      const url = document.getElementById('inspectorUrlInput').value.trim();
+      if (!url) {
+        alert("Vui lòng nhập link URL cần xem HTML!");
+        return;
+      }
+
+      const mode = document.querySelector('input[name="inspectorMode"]:checked').value;
+      const useBrowser = (mode === 'browser');
+
+      const btn = document.getElementById('btnFetchHtml');
+      const btnText = document.getElementById('btnFetchHtmlText');
+      btn.disabled = true;
+      btnText.innerText = "ĐANG TẢI & KẾT XUẤT...";
+
+      try {
+        const res = await fetch('/api/inspector/fetch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, use_browser: useBrowser })
+        });
+        const data = await res.json();
+        if (data.success) {
+          currentFetchedHtml = data.html || "";
+          currentFetchedUrl = data.url || url;
+
+          // Update stats
+          document.getElementById('inspectorPageTitle').innerText = data.title || "(Không có title)";
+          document.getElementById('inspectorCharCount').innerText = Number(data.length).toLocaleString();
+          document.getElementById('inspectorSizeKb').innerText = data.size_kb;
+
+          // Put into Raw Textarea
+          const ta = document.getElementById('inspectorHtmlTextarea');
+          ta.value = currentFetchedHtml;
+
+          // Parse DOM and tag elements
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(currentFetchedHtml, 'text/html');
+
+          // Ensure <base> tag exists for resolving images/CSS
+          let baseTag = doc.querySelector('base');
+          if (!baseTag) {
+            baseTag = doc.createElement('base');
+            doc.head.insertBefore(baseTag, doc.head.firstChild);
+          }
+          baseTag.href = currentFetchedUrl;
+
+          // Tag all elements with unique ins_id
+          let insCounter = 0;
+          insElementsMap.clear();
+
+          function tagElementsRecursively(node) {
+            if (!node || node.nodeType !== Node.ELEMENT_NODE) return;
+            const t = node.tagName.toLowerCase();
+            if (t !== 'script' && t !== 'style') {
+              const insId = 'ins_' + (insCounter++);
+              node.setAttribute('data-ins-id', insId);
+              const sel = computeOptimalSelector(node);
+              insElementsMap.set(insId, {
+                id: insId,
+                tag: t,
+                selector: sel,
+                classes: Array.from(node.classList || []),
+                text: (node.textContent || '').trim().slice(0, 100)
+              });
+            }
+            for (const child of node.children) {
+              tagElementsRecursively(child);
+            }
+          }
+
+          tagElementsRecursively(doc.body);
+
+          // Inject inspector CSS & script into doc
+          const styleEl = doc.createElement('style');
+          styleEl.textContent = `
+            [data-ins-hover="true"] {
+              outline: 2px dashed #06b6d4 !important;
+              background-color: rgba(6, 182, 212, 0.15) !important;
+              cursor: crosshair !important;
+            }
+            [data-ins-active="true"] {
+              outline: 2px solid #3b82f6 !important;
+              background-color: rgba(59, 130, 246, 0.25) !important;
+              box-shadow: 0 0 12px rgba(59, 130, 246, 0.4) !important;
+            }
+          `;
+          doc.head.appendChild(styleEl);
+
+          const scriptEl = doc.createElement('script');
+          scriptEl.textContent = `
+            (function() {
+              let hovered = null;
+              let active = null;
+
+              document.addEventListener('mouseover', function(e) {
+                const target = e.target.closest('[data-ins-id]');
+                if (!target) return;
+                if (hovered && hovered !== target) hovered.removeAttribute('data-ins-hover');
+                hovered = target;
+                hovered.setAttribute('data-ins-hover', 'true');
+              }, true);
+
+              document.addEventListener('mouseout', function(e) {
+                if (hovered) {
+                  hovered.removeAttribute('data-ins-hover');
+                  hovered = null;
+                }
+              }, true);
+
+              document.addEventListener('click', function(e) {
+                const target = e.target.closest('[data-ins-id]');
+                if (!target) return;
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (active) active.removeAttribute('data-ins-active');
+                active = target;
+                active.setAttribute('data-ins-active', 'true');
+
+                const insId = target.getAttribute('data-ins-id');
+                if (window.parent && window.parent.onIframeElementSelected) {
+                  window.parent.onIframeElementSelected(insId);
+                }
+              }, true);
+
+              window.addEventListener('message', function(ev) {
+                if (!ev.data || !ev.data.type) return;
+                if (ev.data.type === 'SELECT_ELEMENT') {
+                  const target = document.querySelector('[data-ins-id="' + ev.data.insId + '"]');
+                  if (target) {
+                    if (active) active.removeAttribute('data-ins-active');
+                    active = target;
+                    active.setAttribute('data-ins-active', 'true');
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                } else if (ev.data.type === 'HOVER_ELEMENT') {
+                  const target = document.querySelector('[data-ins-id="' + ev.data.insId + '"]');
+                  if (hovered && hovered !== target) hovered.removeAttribute('data-ins-hover');
+                  if (target) {
+                    hovered = target;
+                    hovered.setAttribute('data-ins-hover', 'true');
+                  }
+                } else if (ev.data.type === 'UNHOVER_ELEMENT') {
+                  if (hovered) {
+                    hovered.removeAttribute('data-ins-hover');
+                    hovered = null;
+                  }
+                }
+              });
+            })();
+          `;
+          doc.body.appendChild(scriptEl);
+
+          preparedIframeHtml = doc.documentElement.outerHTML;
+
+          // Render into iframe
+          const iframe = document.getElementById('inspectorIframe');
+          iframe.srcdoc = preparedIframeHtml;
+
+          // Render DOM Tree
+          const treeBox = document.getElementById('inspectorDomTreeView');
+          treeBox.innerHTML = buildTreeNodeHtml(doc.body, 0);
+
+          // Show UI blocks
+          document.getElementById('inspectorStats').classList.remove('hidden');
+          document.getElementById('inspectorActiveBar').classList.remove('hidden');
+          document.getElementById('inspectorDualPane').classList.remove('hidden');
+
+          // Select body node by default
+          const firstIns = doc.body.getAttribute('data-ins-id');
+          if (firstIns) {
+            selectFromTree(firstIns);
+          }
+
+          lucide.createIcons();
+        } else {
+          alert("Lỗi tải trang: " + data.message);
+        }
+      } catch (e) {
+        alert("Lỗi kết nối máy chủ: " + e);
+      } finally {
+        btn.disabled = false;
+        btnText.innerText = "TẢI & BẬT DEVTOOLS";
+      }
+    }
+
+    function reloadInspectorIframe() {
+      if (preparedIframeHtml) {
+        const iframe = document.getElementById('inspectorIframe');
+        iframe.srcdoc = preparedIframeHtml;
+      }
+    }
+
+    function openIframeInNewTab() {
+      if (currentFetchedUrl) {
+        window.open(currentFetchedUrl, '_blank');
+      }
+    }
+
+    // SUBTAB SWITCHING IN RIGHT PANE
+    function switchInspectorSubtab(subtab) {
+      const treeBtn = document.getElementById('insSubtabTreeBtn');
+      const rawBtn = document.getElementById('insSubtabRawBtn');
+      const queryBtn = document.getElementById('insSubtabQueryBtn');
+
+      const treeContent = document.getElementById('insSubtabTreeContent');
+      const rawContent = document.getElementById('insSubtabRawContent');
+      const queryContent = document.getElementById('insSubtabQueryContent');
+
+      // Reset styles
+      [treeBtn, rawBtn, queryBtn].forEach(b => {
+        b.className = "px-3 py-1 rounded-md font-medium text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5 cursor-pointer";
+      });
+
+      treeContent.classList.add('hidden');
+      rawContent.classList.add('hidden');
+      queryContent.classList.add('hidden');
+
+      if (subtab === 'tree') {
+        treeBtn.className = "px-3 py-1 rounded-md font-bold text-cyan-400 bg-slate-800 shadow-sm transition flex items-center gap-1.5 cursor-pointer";
+        treeContent.classList.remove('hidden');
+      } else if (subtab === 'raw') {
+        rawBtn.className = "px-3 py-1 rounded-md font-bold text-cyan-400 bg-slate-800 shadow-sm transition flex items-center gap-1.5 cursor-pointer";
+        rawContent.classList.remove('hidden');
+      } else if (subtab === 'query') {
+        queryBtn.className = "px-3 py-1 rounded-md font-bold text-cyan-400 bg-slate-800 shadow-sm transition flex items-center gap-1.5 cursor-pointer";
+        queryContent.classList.remove('hidden');
+      }
+      lucide.createIcons();
+    }
+
+    // TOP ACTIVE BAR ACTIONS
+    async function copyActiveSelector() {
+      if (!currentActiveSelector) return;
+      try {
+        await navigator.clipboard.writeText(currentActiveSelector);
+        const t = document.getElementById('btnCopySelectorText');
+        const orig = t.innerText;
+        t.innerText = "✅ Đã Copy!";
+        setTimeout(() => { t.innerText = orig; }, 2000);
+      } catch (e) {
+        alert("Selector: " + currentActiveSelector);
+      }
+    }
+
+    function toggleAssignMenu() {
+      const menu = document.getElementById('assignMenuDropdown');
+      menu.classList.toggle('hidden');
+    }
+
+    // Close assign menu if clicked outside
+    window.addEventListener('click', function(e) {
+      const menu = document.getElementById('assignMenuDropdown');
+      if (menu && !menu.classList.contains('hidden')) {
+        if (!e.target.closest('#assignMenuDropdown') && !e.target.closest('button[onclick="toggleAssignMenu()"]')) {
+          menu.classList.add('hidden');
+        }
+      }
+    });
+
+    function assignSelectorTo(fieldId) {
+      if (!currentActiveSelector) {
+        alert("Vui lòng click chọn một phần tử trước khi gán!");
+        return;
+      }
+      const target = document.getElementById(fieldId);
+      if (target) {
+        target.value = currentActiveSelector;
+        const menu = document.getElementById('assignMenuDropdown');
+        if (menu) menu.classList.add('hidden');
+
+        // Switch to Tab 4 (Parsers)
+        switchTab('parsers');
+
+        // Highlight field
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.focus();
+        target.classList.add('ring-2', 'ring-cyan-400');
+        setTimeout(() => { target.classList.remove('ring-2', 'ring-cyan-400'); }, 2500);
+      }
+    }
+
+    async function copyFullHtml() {
+      if (!currentFetchedHtml) return;
+      try {
+        await navigator.clipboard.writeText(currentFetchedHtml);
+        const t = document.getElementById('btnCopyHtmlText');
+        const orig = t.innerText;
+        t.innerText = "✅ Đã Sao Chép!";
+        setTimeout(() => { t.innerText = orig; }, 2000);
+      } catch (e) {
+        const ta = document.getElementById('inspectorHtmlTextarea');
+        ta.select();
+        document.execCommand('copy');
+        alert("Đã sao chép toàn bộ HTML vào clipboard!");
+      }
+    }
+
+    function downloadHtmlFile() {
+      if (!currentFetchedHtml) return;
+      const blob = new Blob([currentFetchedHtml], { type: 'text/html;charset=utf-8' });
+      const a = document.createElement('a');
+      let filename = "source_page.html";
+      try {
+        const u = new URL(currentFetchedUrl);
+        const part = u.pathname.replace(/^\/|\/$/g, '').replace(/[\/\\]/g, '_');
+        filename = (part ? part : u.hostname) + ".html";
+      } catch (e) {}
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    }
+
+    function sendToCrawlerFromInspector() {
+      if (currentFetchedUrl) {
+        document.getElementById('crawlUrlInput').value = currentFetchedUrl;
+      }
+      switchTab('crawler');
+    }
+
+    function sendToParsersFromInspector() {
+      if (currentFetchedUrl) {
+        document.getElementById('parserSampleUrl').value = currentFetchedUrl;
+      }
+      switchTab('parsers');
+    }
+
+    async function testSelectorInHtml() {
+      const sel = document.getElementById('inspectorSelectorInput').value.trim();
+      if (!sel) {
+        alert("Vui lòng nhập CSS Selector cần lọc!");
+        return;
+      }
+      if (!currentFetchedHtml) {
+        alert("Chưa có nội dung HTML. Vui lòng tải trang trước!");
+        return;
+      }
+
+      const resBox = document.getElementById('selectorResultsBox');
+      const badge = document.getElementById('selectorMatchBadge');
+      badge.classList.remove('hidden');
+      badge.innerText = "Đang lọc...";
+
+      try {
+        const res = await fetch('/api/inspector/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ selector: sel, html: currentFetchedHtml })
+        });
+        const data = await res.json();
+        if (data.success) {
+          badge.innerText = `Tìm thấy ${data.total_matches} thẻ khớp!`;
+          resBox.classList.remove('hidden');
+
+          if (!data.results.length) {
+            resBox.innerHTML = `<div class="text-slate-400 italic p-3">Không tìm thấy phần tử nào khớp với selector '<b>${escapeHtml(sel)}</b>'.</div>`;
+          } else {
+            resBox.innerHTML = data.results.map((r, i) => `
+              <div class="p-2.5 rounded bg-slate-900 border border-slate-800 space-y-1">
+                <div class="flex items-center gap-2 font-mono text-[11px]">
+                  <span class="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold">#${i + 1} &lt;${escapeHtml(r.tag)}&gt;</span>
+                  ${r.classes.length ? `<span class="text-slate-400">class="${escapeHtml(r.classes.join(' '))}"</span>` : ''}
+                  ${r.id ? `<span class="text-cyan-400">id="${escapeHtml(r.id)}"</span>` : ''}
+                </div>
+                ${r.text ? `<div class="text-[11px] text-slate-300"><b>Văn bản:</b> "${escapeHtml(r.text)}"</div>` : ''}
+                <div class="text-[10px] text-slate-500 font-mono overflow-x-auto whitespace-pre-wrap">${escapeHtml(r.outer_html)}</div>
+              </div>
+            `).join('');
+          }
+        } else {
+          alert("Lỗi: " + data.message);
+        }
+      } catch (e) {
+        alert("Lỗi kết nối: " + e);
+      }
+    }
+
+    function searchInHtml() {
+      const q = document.getElementById('inspectorSearchInput').value.trim();
+      const ta = document.getElementById('inspectorHtmlTextarea');
+      const countLabel = document.getElementById('searchMatchCount');
+
+      if (!q || !currentFetchedHtml) {
+        countLabel.innerText = "";
+        return;
+      }
+
+      const regex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      const matches = currentFetchedHtml.match(regex);
+      const total = matches ? matches.length : 0;
+      countLabel.innerText = `${total} kết quả`;
+
+      if (total > 0) {
+        const idx = currentFetchedHtml.toLowerCase().indexOf(q.toLowerCase());
+        if (idx !== -1) {
+          ta.focus();
+          ta.setSelectionRange(idx, idx + q.length);
+        }
+      }
+    }
+
+    function toggleCodeWrap() {
+      const check = document.getElementById('inspectorWrapCheck');
+      const ta = document.getElementById('inspectorHtmlTextarea');
+      ta.setAttribute('wrap', check.checked ? 'soft' : 'off');
+    }
+
+    // =========================================================================
+    // MULTI-SITE ACCOUNT SETTINGS & SYSTEM CONFIG
+    // =========================================================================
+    let siteAccounts = [];
+
+    async function loadSettings() {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      siteAccounts = data.accounts || [];
+
+      // Populate Account Domain Select
+      const sel = document.getElementById('setAccountDomainSelect');
+      sel.innerHTML = siteAccounts.map(a => 
+        `<option value="${escapeHtml(a.domain)}">${escapeHtml(a.name || a.domain)} (${escapeHtml(a.domain)})</option>`
+      ).join('') + `<option value="__new__">➕ Thêm Tài Khoản Cho Website Mới...</option>`;
+
+      // Select first or giatocvuongtai.com
+      const defDomain = siteAccounts.some(a => a.domain === 'giatocvuongtai.com') ? 'giatocvuongtai.com' : (siteAccounts[0] ? siteAccounts[0].domain : '__new__');
+      sel.value = defDomain;
+      onAccountDomainChanged();
+      renderAccountsSummaryTable();
+
+      // Timing settings
+      if (data.timing) {
+        document.getElementById('setReadingWpm').value = data.timing.reading_wpm || 650;
+        document.getElementById('setChapBreakChance').value = data.timing.chap_break_chance || 5;
+      }
+      lucide.createIcons();
+    }
+
+    function onAccountDomainChanged() {
+      const sel = document.getElementById('setAccountDomainSelect');
+      const val = sel.value;
+      const btnDel = document.getElementById('btnDeleteAccount');
+
+      if (val === '__new__') {
+        document.getElementById('setAccountDomain').value = "";
+        document.getElementById('setAccountDomain').readOnly = false;
+        document.getElementById('setAccountName').value = "";
+        document.getElementById('setAccountLoginUrl').value = "";
+        document.getElementById('setAccountEmail').value = "";
+        document.getElementById('setAccountPass').value = "";
+        document.getElementById('setAccountAutoLogin').checked = true;
+        btnDel.classList.add('hidden');
+        document.getElementById('setAccountDomain').focus();
+        return;
+      }
+
+      const acc = siteAccounts.find(a => a.domain === val);
+      if (acc) {
+        document.getElementById('setAccountDomain').value = acc.domain || "";
+        document.getElementById('setAccountDomain').readOnly = (acc.domain === 'giatocvuongtai.com');
+        document.getElementById('setAccountName').value = acc.name || "";
+        document.getElementById('setAccountLoginUrl').value = acc.login_url || "";
+        document.getElementById('setAccountEmail').value = acc.login_email || "";
+        document.getElementById('setAccountPass').value = acc.login_password || "";
+        document.getElementById('setAccountAutoLogin').checked = !!acc.auto_login;
+
+        if (acc.domain === 'giatocvuongtai.com') {
+          btnDel.classList.add('hidden');
+        } else {
+          btnDel.classList.remove('hidden');
+        }
+      }
+    }
+
+    function prepareNewAccount() {
+      const sel = document.getElementById('setAccountDomainSelect');
+      sel.value = '__new__';
+      onAccountDomainChanged();
+    }
+
+    async function saveCurrentAccountSetting() {
+      const domain = document.getElementById('setAccountDomain').value.trim().toLowerCase();
+      if (!domain) {
+        alert("Vui lòng nhập Domain website (vd: giatocvuongtai.com hoặc truyenfull.vn)!");
+        return;
+      }
+
+      const payload = {
+        domain: domain,
+        name: document.getElementById('setAccountName').value.trim(),
+        login_url: document.getElementById('setAccountLoginUrl').value.trim(),
+        email: document.getElementById('setAccountEmail').value.trim(),
+        password: document.getElementById('setAccountPass').value.trim(),
+        auto_login: document.getElementById('setAccountAutoLogin').checked,
+        reading_wpm: parseInt(document.getElementById('setReadingWpm').value) || 650,
+        chap_break_chance: parseInt(document.getElementById('setChapBreakChance').value) || 5
+      };
+
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("✅ Đã lưu cấu hình tài khoản cho website '" + domain + "' thành công!");
+        await loadSettings();
+        document.getElementById('setAccountDomainSelect').value = domain;
+        onAccountDomainChanged();
+      } else {
+        alert("Lỗi: " + data.message);
+      }
+    }
+
+    async function deleteCurrentAccountSetting() {
+      const domain = document.getElementById('setAccountDomain').value.trim().toLowerCase();
+      if (!domain || domain === 'giatocvuongtai.com') {
+        alert("Không thể xóa tài khoản Gia Tộc Vượng Tài!");
+        return;
+      }
+      if (!confirm(`Bạn có chắc muốn xóa thông tin đăng nhập của trang '${domain}'?`)) {
+        return;
+      }
+
+      const res = await fetch('/api/settings/delete-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: domain })
+      });
+      const data = await res.json();
+      alert(data.message);
+      loadSettings();
+    }
+
+    function renderAccountsSummaryTable() {
+      const tbody = document.getElementById('accountsSummaryTableBody');
+      if (!tbody) return;
+      if (!siteAccounts.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="px-3 py-4 text-center text-slate-500">Chưa có tài khoản nào được cấu hình.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = siteAccounts.map(a => {
+        const hasCreds = !!(a.login_email && a.login_password);
+        const autoBadge = a.auto_login 
+          ? `<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20 text-[10px]">Bật</span>`
+          : `<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px]">Tắt</span>`;
+        
+        return `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="px-3 py-2 font-mono text-slate-200">
+              <span class="font-bold text-white">${escapeHtml(a.name || a.domain)}</span>
+              <span class="text-slate-500 text-[11px] block">${escapeHtml(a.domain)}</span>
+            </td>
+            <td class="px-3 py-2">
+              ${hasCreds ? `<span class="text-cyan-300 font-medium">${escapeHtml(a.login_email)}</span>` : `<span class="text-slate-500 italic">Chưa điền</span>`}
+            </td>
+            <td class="px-3 py-2 text-center">
+              ${autoBadge}
+            </td>
+            <td class="px-3 py-2 text-right">
+              <button onclick="editAccountForDomain('${escapeHtml(a.domain)}')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs transition cursor-pointer">Sửa</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function editAccountForDomain(domain) {
+      const sel = document.getElementById('setAccountDomainSelect');
+      sel.value = domain;
+      onAccountDomainChanged();
+      document.getElementById('setAccountEmail').focus();
+    }
+
+    async function saveSettings() {
+      await saveCurrentAccountSetting();
+    }
+
+    // LIVE LOG STREAM (SSE)
+    let logCount = 0;
+    const terminalLogs = document.getElementById('terminalLogs');
+    const autoScrollCheck = document.getElementById('autoScrollCheck');
+
+    function appendLog(entry) {
+      logCount++;
+      document.getElementById('logCounterBadge').innerText = logCount + " dòng";
+
+      let colorClass = "text-slate-300";
+      if (entry.type === "chapter") colorClass = "text-sky-400 font-bold glow-cyan";
+      else if (entry.type === "success") colorClass = "text-emerald-400 font-bold glow-green";
+      else if (entry.type === "error") colorClass = "text-rose-400 font-bold glow-red";
+      else if (entry.type === "warn" || entry.type === "pause") colorClass = "text-amber-400";
+      else if (entry.type === "cleaner") colorClass = "text-purple-400";
+
+      const lineDiv = document.createElement('div');
+      lineDiv.className = `terminal-line flex gap-2 ${colorClass}`;
+      lineDiv.innerHTML = `<span class="text-slate-600 select-none">[${entry.time || ""}]</span><span>${escapeHtml(entry.text || "")}</span>`;
+      terminalLogs.appendChild(lineDiv);
+
+      if (autoScrollCheck.checked) {
+        terminalLogs.scrollTop = terminalLogs.scrollHeight;
+      }
+    }
+
+    function clearLogs() {
+      terminalLogs.innerHTML = "";
+      logCount = 0;
+      document.getElementById('logCounterBadge').innerText = "0 dòng";
+    }
+
+    function toggleTerminal() {
+      const t = document.getElementById('terminalDrawer');
+      if (t.classList.contains('h-72')) {
+        t.classList.remove('h-72');
+        t.classList.add('h-10');
+      } else {
+        t.classList.remove('h-10');
+        t.classList.add('h-72');
+      }
+    }
+
+    function initLogSSE() {
+      const evtSource = new EventSource("/api/logs/stream");
+      evtSource.onmessage = function(e) {
+        try {
+          const data = JSON.parse(e.data);
+          if (data && data.text) appendLog(data);
+        } catch (err) {}
+      };
+      evtSource.onerror = function() {
+        // Tự động kết nối lại
+      };
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // INIT
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      initLogSSE();
+      loadCheckpoints();
+    });
+  </script>
+</body>
+</html>
+

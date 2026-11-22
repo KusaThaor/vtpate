@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VTPATE - Quản lý tải truyện và đóng gói EPUB</title>
+  <link rel="stylesheet" href="manager.css">
+</head>
+<body class="theme-dark">
+  <div class="app-layout">
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-logo">
+          <i data-lucide="book-open"></i>
+        </div>
+        <div class="brand-text">
+          <h1>VTPATE <small>1.0.3</small></h1>
+          <span class="subtitle">Tải truyện và quản lý EPUB</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="crawl-stage" class="badge badge-neutral">Sẵn sàng</span>
+        <span id="serviceWorkerStatus" class="badge badge-success">
+          <i data-lucide="check-circle-2"></i> Service Worker Sẵn sàng
+        </span>
+      </div>
+    </header>
+
+    <!-- Main Studio Content -->
+    <nav class="manager-tabs" role="tablist" aria-label="Chức năng quản lý truyện">
+<button type="button" role="tab" id="tab-story" aria-controls="panel-story" aria-selected="true" tabindex="0" data-manager-tab="story">Truyện và chương</button>
+<button type="button" role="tab" id="tab-batch" aria-controls="panel-batch" aria-selected="false" tabindex="-1" data-manager-tab="batch">Tải nhiều truyện</button>
+<button type="button" role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false" tabindex="-1" data-manager-tab="settings">Cài đặt tải</button>
+<button type="button" role="tab" id="tab-advanced" aria-controls="panel-advanced" aria-selected="false" tabindex="-1" data-manager-tab="advanced">Trích xuất nội dung</button>
+<button type="button" role="tab" id="tab-download" aria-controls="panel-download" aria-selected="false" tabindex="-1" data-manager-tab="download">Tải và nhật ký</button>
+<button type="button" role="tab" id="tab-storage" aria-controls="panel-storage" aria-selected="false" tabindex="-1" data-manager-tab="storage">Chương đã tải và lưu trữ</button>
+<button type="button" role="tab" id="tab-repair" aria-controls="panel-repair" aria-selected="false" tabindex="-1" data-manager-tab="repair">Sửa EPUB</button>
+<button type="button" role="tab" id="tab-cleaner" aria-controls="panel-cleaner" aria-selected="false" tabindex="-1" data-manager-tab="cleaner">Chuyển Text &amp; Làm Sạch HTML</button>
+</nav>
+<main class="app-main"><div id="panel-story" class="manager-panel" role="tabpanel" aria-labelledby="tab-story" tabindex="0"><section class="card input-section">
+        <div class="card-header">
+          <h2><i data-lucide="globe"></i> Nhập địa chỉ truyện</h2>
+        </div>
+        <div class="card-body">
+          <div class="input-group">
+            <input type="url" id="inputNovelUrl" placeholder="https://giatocvuongtai.com/... hoặc https://truyenfull.vn/... hoặc https://archiveofourown.org/..." spellcheck="false" autocomplete="off">
+            <button type="button" id="btnFetchMetadata" class="btn btn-primary">
+              <i data-lucide="search"></i> Trích xuất Thông tin
+            </button>
+          </div>
+          <div class="domain-badge-bar">
+            <span class="label">Parser đề xuất:</span>
+            <span id="detectedParserBadge" class="badge badge-neutral">Chưa phát hiện</span>
+          </div>
+        </div>
+      </section>
+<section class="card metadata-section" id="novelMetadataCard">
+        <div class="card-header">
+          <h2><i data-lucide="file-text"></i> Thông tin Tác phẩm</h2>
+        </div>
+        <div class="card-body metadata-layout">
+          <div class="cover-wrapper">
+            <div id="coverPlaceholder" class="cover-box">
+              <i data-lucide="image"></i>
+              <span>Chưa có ảnh bìa</span>
+            </div>
+            <img id="coverImage" class="cover-img" alt="Bìa truyện" style="display: none;">
+            <div class="cover-actions" style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px; width: 100%;">
+              <div class="input-group" style="display: flex; gap: 4px;">
+                <input type="url" id="novel-cover-url" class="form-control input-sm" placeholder="URL ảnh bìa tùy chỉnh...">
+                <button type="button" id="btn-apply-cover-url" class="btn btn-secondary btn-sm" title="Tải &amp; đổi ảnh bìa từ URL">
+                  <i data-lucide="image-plus"></i> Đổi bìa
+                </button>
+              </div>
+              <button type="button" id="btn-generate-cover" class="btn btn-outline btn-sm" title="Tự động vẽ bìa bằng Canvas">
+                <i data-lucide="sparkles"></i> Tạo bìa tự động
+              </button>
+            </div>
+          </div>
+          <div class="meta-fields">
+            <div class="form-group">
+              <label for="novel-title">Tên truyện</label>
+              <input type="text" id="novel-title" name="title" class="form-control" placeholder="Chưa nạp">
+            </div>
+            <div class="form-group">
+              <label for="novel-author">Tác giả</label>
+              <input type="text" id="novel-author" name="author" class="form-control" placeholder="Chưa nạp">
+            </div>
+            <div class="form-group">
+              <label for="novel-desc">Giới thiệu tóm tắt</label>
+              <textarea id="novel-desc" name="description" class="form-control" rows="3" placeholder="Chưa nạp"></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+<section class="card chapters-section">
+        <div class="card-header flex-between">
+          <h2><i data-lucide="list"></i> Danh sách Chương (<span id="totalChaptersCount">0</span> chương)</h2>
+          <div class="header-buttons">
+            <button type="button" id="btn-manual-chapters" class="btn btn-secondary btn-sm" title="Nhập danh sách link chương thủ công">
+              <i data-lucide="edit-3"></i> Nhập liên kết thủ công
+            </button>
+            <button type="button" id="btn-select-all" class="btn btn-secondary btn-sm">
+              <i data-lucide="check-square"></i> Chọn tất cả
+            </button>
+            <button type="button" id="btn-deselect-all" class="btn btn-secondary btn-sm">
+              <i data-lucide="square"></i> Bỏ chọn tất cả
+            </button>
+            <button type="button" id="btn-reverse" class="btn btn-secondary btn-sm">
+              <i data-lucide="arrow-up-down"></i> Đảo thứ tự
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="filter-bar">
+            <span>Tải từ chương:</span>
+            <input type="number" id="range-from" class="form-control input-sm" min="1" value="1">
+            <span>đến:</span>
+            <input type="number" id="range-to" class="form-control input-sm" min="1" value="1">
+            <button type="button" id="btn-apply-range" class="btn btn-secondary btn-sm">
+              <i data-lucide="filter"></i> Áp dụng khoảng
+            </button>
+            <input type="text" id="chapter-search" class="form-control input-sm" placeholder="🔍 Lọc chương theo tên..." style="flex: 1; min-width: 160px; margin-left: 8px;">
+          </div>
+          <div id="chapter-list" class="chapter-list-box">
+            <div class="empty-state">Chưa nạp danh sách chương. Vui lòng nhập URL truyện ở trên và bấm "Trích xuất Thông tin", hoặc bấm "Nhập liên kết thủ công".</div>
+          </div>
+        </div>
+      </section></div>
+<div id="panel-batch" class="manager-panel" role="tabpanel" aria-labelledby="tab-batch" tabindex="0" hidden>
+  <section class="card batch-input-section">
+    <div class="card-header flex-between">
+      <h2><i data-lucide="layers"></i> Tải Nhiều Truyện Đồng Thời (Hàng Đợi Batch)</h2>
+      <div class="batch-summary-stats" id="batchSummaryStats">
+        <span class="badge badge-neutral" id="batchTotalBadge">Tổng: 0</span>
+        <span class="badge badge-info" id="batchRunningBadge">Đang tải: 0</span>
+        <span class="badge badge-success" id="batchCompletedBadge">Đã xong: 0</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="form-group">
+        <label for="batchUrlsInput">Nhập danh sách liên kết truyện (mỗi dòng một URL truyện):</label>
+        <textarea id="batchUrlsInput" class="form-control" rows="4" placeholder="Dán các link truyện vào đây (mỗi dòng 1 URL)...&#10;https://giatocvuongtai.com/truyen/...&#10;https://www.wattpad.com/story/...&#10;https://www.inkitt.com/stories/..."></textarea>
+      </div>
+      <div class="batch-options-row">
+        <div class="batch-option">
+          <label for="batchConcurrencySelect">Số truyện tải đồng thời:</label>
+          <select id="batchConcurrencySelect" class="form-control select-sm">
+            <option value="1">1 truyện (tuần tự lần lượt)</option>
+            <option value="2" selected>2 truyện cùng lúc (khuyên dùng)</option>
+            <option value="3">3 truyện cùng lúc</option>
+            <option value="4">4 truyện cùng lúc</option>
+          </select>
+        </div>
+        <div class="batch-option checkbox-option">
+          <label class="checkbox-label" for="batchAutoExportCheck">
+            <input type="checkbox" id="batchAutoExportCheck" checked>
+            <span>Tự động xuất EPUB khi mỗi truyện hoàn tất</span>
+          </label>
+        </div>
+      </div>
+      <div class="btn-group batch-actions-row">
+        <button type="button" id="btnBatchAdd" class="btn btn-primary">
+          <i data-lucide="plus-circle"></i> Thêm vào hàng đợi
+        </button>
+        <button type="button" id="btnBatchStartAll" class="btn btn-success">
+          <i data-lucide="play"></i> Bắt đầu tải tất cả
+        </button>
+        <button type="button" id="btnBatchPauseAll" class="btn btn-warning">
+          <i data-lucide="pause"></i> Tạm dừng tất cả
+        </button>
+        <button type="button" id="btnBatchStopAll" class="btn btn-danger">
+          <i data-lucide="square"></i> Dừng tất cả
+        </button>
+        <button type="button" id="btnBatchClearDone" class="btn btn-secondary">
+          <i data-lucide="trash-2"></i> Xóa truyện đã xong
+        </button>
+        <button type="button" id="btnBatchClearAll" class="btn btn-secondary">
+          <i data-lucide="x-circle"></i> Xóa tất cả
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card batch-queue-section">
+    <div class="card-header flex-between">
+      <h2><i data-lucide="list"></i> Danh sách Truyện trong Hàng đợi (<span id="batchQueueCount">0</span>)</h2>
+    </div>
+    <div class="card-body">
+      <div id="batchEmptyNotice" class="empty-state">
+        Chưa có truyện nào trong hàng đợi. Hãy dán liên kết truyện ở trên và bấm "Thêm vào hàng đợi".
+      </div>
+      <div id="batchQueueContainer" class="batch-items-container">
+        <!-- Render dynamically -->
+      </div>
+    </div>
+  </section>
+</div>
+<div id="panel-settings" class="manager-panel" role="tabpanel" aria-labelledby="tab-settings" tabindex="0" hidden><section class="card profile-section">
+        <div class="card-header">
+          <h2><i data-lucide="sliders"></i> Chế độ tải và thời gian chờ</h2>
+        </div>
+        <div class="card-body grid-form">
+          <div class="form-group">
+            <label for="crawl-mode">Chế độ tải</label>
+            <select id="crawl-mode" name="mode" class="form-control">
+              <option value="fetch" selected>Tải trực tiếp (mặc định)</option>
+              <option value="tab">Tải tuần tự qua thẻ trình duyệt</option>
+            </select>
+            <small class="field-hint">Tải trực tiếp có thể gửi nhiều yêu cầu cùng lúc. Tải qua thẻ xử lý từng chương và dùng phiên trình duyệt hiện tại.</small>
+          </div>
+          <div class="form-group">
+            <label for="concurrency">Số chương tải song song (1–10)</label>
+            <input type="number" id="concurrency" name="concurrency" class="form-control" min="1" max="10" value="4">
+            <small class="field-hint">Chỉ áp dụng cho tải trực tiếp. Chọn 1 để xử lý từng chương.</small>
+          </div>
+          <div class="form-group">
+            <label for="delay">Thời gian chờ cơ sở (0–5000 mili giây)</label>
+            <input type="number" id="delay" name="delay" class="form-control" min="0" max="5000" step="100" value="1000">
+            <small class="field-hint">Áp dụng trước yêu cầu tải. Khi bật dao động, khoảng chờ thực tế có thể ngắn hơn giá trị này.</small>
+          </div>
+          <div class="form-group">
+            <label for="page-load-wait">Thời gian chờ trang hiển thị (500–10.000 mili giây)</label>
+            <input type="number" id="page-load-wait" name="pageLoadWaitMs" class="form-control" min="500" max="10000" step="100" value="2000">
+            <small class="field-hint">Chỉ áp dụng cho tải qua thẻ. Tăng nếu nội dung xuất hiện chậm.</small>
+          </div>
+          <div class="form-group">
+            <label for="reading-wpm">Tốc độ đọc dùng để tính thời gian nghỉ (từ/phút)</label>
+            <input type="number" id="reading-wpm" name="readingWpm" class="form-control" min="200" max="1500" step="50" value="650">
+            <small class="field-hint">Ví dụ, 1.300 từ ở 650 từ/phút sẽ nghỉ khoảng 2 phút. Khoảng nghỉ tối thiểu là 15 giây với chương có chữ.</small>
+          </div>
+          <div class="form-group checkbox-group">
+            <label for="enable-wpm-delay" class="checkbox-label">
+              <input type="checkbox" id="enable-wpm-delay" name="enableWpmDelay" checked>
+              <span>Nghỉ theo độ dài chương (tự động tải từng chương)</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="max-wait-seconds">Giới hạn thời gian chờ tối đa giữa các chương (giây)</label>
+            <input type="number" id="max-wait-seconds" name="maxWaitSeconds" class="form-control" min="0" max="600" step="5" value="30">
+            <small class="field-hint">Dù chương có bao nhiêu từ, thời gian chờ cũng không vượt quá số giây này (ví dụ đặt 30s thay vì phải chờ 500s). Đặt 0 để không giới hạn.</small>
+          </div>
+          <div class="form-group">
+            <label for="inter-chapter-delay">Thời gian chờ cố định giữa các chương khi tắt WPM (giây)</label>
+            <input type="number" id="inter-chapter-delay" name="interChapterDelaySeconds" class="form-control" min="0" max="300" step="1" value="3">
+            <small class="field-hint">Áp dụng khi tắt "Nghỉ theo độ dài chương". Khoảng cách nghỉ an toàn giữa 2 chương liên tiếp.</small>
+          </div>
+          <div class="form-group">
+            <label for="recheck-wait-seconds">Thời gian tạm ngưng chờ tải lại HTML khi trang chưa có nội dung (giây)</label>
+            <input type="number" id="recheck-wait-seconds" name="recheckWaitSeconds" class="form-control" min="3" max="60" step="1" value="10">
+            <small class="field-hint">Khi trang web (SPA/Nuxt/Vue) chưa kịp hiển thị nội dung, crawler sẽ tạm dừng số giây này (không reset trang) để đợi DOM và JavaScript tải xong rồi kiểm tra lại.</small>
+          </div>
+          <div class="form-group">
+            <label for="break-interval">Nghỉ dài định kỳ: Sau mỗi số chương</label>
+            <input type="number" id="break-interval" name="periodicBreakInterval" class="form-control" min="0" max="100" value="10">
+            <small class="field-hint">Tính theo số chương tải thành công qua thẻ. Nhập 0 để tắt.</small>
+          </div>
+          <div class="form-group">
+            <label for="break-seconds">Thời gian nghỉ định kỳ (giây)</label>
+            <input type="number" id="break-seconds" name="periodicBreakSeconds" class="form-control" min="0" max="60" value="5">
+            <small class="field-hint">Cộng thêm vào thời gian nghỉ trước chương kế tiếp.</small>
+          </div>
+          <div class="form-group checkbox-group">
+            <label for="jitter" class="checkbox-label">
+              <input type="checkbox" id="jitter" name="jitter" checked>
+              <span>Cho phép thời gian chờ cơ sở dao động ±30%</span>
+            </label>
+          </div>
+          <div class="form-group checkbox-group full-width">
+            <label for="visible-tab-crawl" class="checkbox-label">
+              <input type="checkbox" id="visible-tab-crawl" name="visibleTab" checked>
+              <span>Đưa thẻ tải truyện ra trước để theo dõi và xác minh khi trang yêu cầu</span>
+            </label>
+          </div>
+          <div class="form-group checkbox-group full-width">
+            <label for="background-chapters-crawl" class="checkbox-label">
+              <input type="checkbox" id="background-chapters-crawl" name="backgroundChapters" checked>
+              <span>Giữ thẻ tải chạy ngầm khi qua chương mới (không chiếm focus màn hình làm phiền bạn)</span>
+            </label>
+          </div>
+          <div class="form-group checkbox-group full-width">
+            <label for="auto-retry-failed-crawl" class="checkbox-label">
+              <input type="checkbox" id="auto-retry-failed-crawl" name="autoRetryFailed" checked>
+              <span>Tự động quét lại các chương tải lỗi khi kết thúc phiên crawl (Auto-retry)</span>
+            </label>
+          </div>
+          <div class="form-group checkbox-group full-width">
+            <label for="include-inline-images" class="checkbox-label">
+              <input type="checkbox" id="include-inline-images" name="includeInlineImages" checked>
+              <span>🖼️ Tải kèm ảnh minh họa: Tự động tải và nhúng toàn bộ ảnh bên trong chương vào EPUB</span>
+            </label>
+          </div>
+          <div class="form-group checkbox-group full-width">
+            <label for="auto-pause-on-sleep" class="checkbox-label">
+              <input type="checkbox" id="auto-pause-on-sleep" name="autoPauseOnSleep" checked>
+              <span>💤 Tự động lưu & tạm dừng khi màn hình máy tính tắt (Screen Off / Lock) hoặc ngắt kết nối mạng</span>
+            </label>
+            <small class="field-hint" style="display: block; margin-top: 4px; margin-left: 26px;">Sử dụng Chrome Idle API: Chỉ ghi nhận khi màn hình máy tính thực sự bị tắt hoặc khóa máy. Chuyển tab làm việc khác cào ngầm bình thường.</small>
+          </div>
+          <div class="form-group full-width">
+            <label for="max-consecutive-errors"><i data-lucide="shield-alert"></i> Tự động dừng khẩn cấp khi lỗi liên tiếp (Circuit Breaker):</label>
+            <select id="max-consecutive-errors" class="form-control select-sm">
+              <option value="3" selected>Dừng & lưu ngay sau 3 chương lỗi liên tiếp (Khuyên dùng khi ngủ quên)</option>
+              <option value="5">Dừng & lưu sau 5 chương lỗi liên tiếp</option>
+              <option value="10">Dừng & lưu sau 10 chương lỗi liên tiếp</option>
+              <option value="0">Tắt (Tiếp tục cào kể cả khi gặp lỗi liên tiếp)</option>
+            </select>
+            <small class="field-hint">Tự động ngắt cào và lưu an toàn khi gặp sự cố mạng/máy tắt giữa chừng, ngăn ngừa hàng chục chương bị báo lỗi oan.</small>
+          </div>
+          <div class="form-group full-width">
+            <label for="epub-split-size"><i data-lucide="layers"></i> Chia nhỏ tập EPUB khi xuất sách:</label>
+            <select id="epub-split-size" class="form-control select-sm">
+              <option value="0" selected>Không chia (1 file EPUB duy nhất)</option>
+              <option value="100">Chia mỗi 100 chương / tập (Quyển 1, Quyển 2...)</option>
+              <option value="200">Chia mỗi 200 chương / tập</option>
+              <option value="500">Chia mỗi 500 chương / tập (khuyên dùng cho truyện dài)</option>
+              <option value="1000">Chia mỗi 1.000 chương / tập</option>
+            </select>
+            <small class="field-hint">Tự động chia thành các tập nhỏ giúp mở sách nhanh và mượt mà trên điện thoại/máy đọc sách.</small>
+          </div>
+          <div class="form-group checkbox-group full-width">
+            <label for="auto-fill-placeholders" class="checkbox-label">
+              <input type="checkbox" id="auto-fill-placeholders" checked>
+              <span><strong>Tự động xếp lại thứ tự & chèn giữ chỗ chương lỗi khi đóng gói EPUB</strong></span>
+            </label>
+            <small class="field-hint" style="display: block; margin-top: 4px; margin-left: 26px;">Khi có chương lỗi giữa chừng (ví dụ lỗi chương 37, 38), lúc đóng gói EPUB sẽ tự động chèn chương giữ chỗ và sắp xếp lại toàn bộ thứ tự để sách không bị nhảy cóc số chương.</small>
+          </div>
+          <div class="form-group checkbox-group full-width">
+            <label for="auto-skip-errors-crawl" class="checkbox-label">
+              <input type="checkbox" id="auto-skip-errors-crawl" checked>
+              <span><strong>Gặp lỗi thì bỏ qua và cào tiếp (không tạm dừng cào)</strong></span>
+            </label>
+            <small class="field-hint" style="display: block; margin-top: 4px; margin-left: 26px;">Khi một chương gặp sự cố hoặc trang chưa có nội dung, hệ thống ghi nhận vào danh sách lỗi và ngay lập tức cào tiếp các chương sau.</small>
+          </div>
+        </div>
+      </section>
+<section class="card auth-section" id="authSection">
+        <div class="card-header flex-between">
+          <h2><i data-lucide="shield-check"></i> Đăng nhập và xác minh trang web</h2>
+          <span id="sessionStatusBadge" class="badge badge-neutral">Chưa kiểm tra phiên</span>
+        </div>
+        <div class="card-body">
+          <p class="section-desc">
+            Dành cho các trang web yêu cầu đăng nhập tài khoản hoặc có rào chắn Cloudflare Turnstile / Anti-Bot. Mở trang trong trình duyệt để đăng nhập hoặc xác minh theo yêu cầu của trang. Sau đó kiểm tra phiên và chọn tải qua thẻ trình duyệt.
+          </p>
+          <div class="grid-form auth-form-grid">
+            <div class="form-group">
+              <label for="login-domain">Tên miền hiện tại</label>
+              <input type="text" id="login-domain" class="form-control" placeholder="Tự động nhận diện..." readonly>
+            </div>
+            <div class="form-group">
+              <label for="login-url">Đường dẫn trang đăng nhập / xác thực</label>
+              <input type="url" id="login-url" class="form-control" placeholder="https://giatocvuongtai.com/register">
+            </div>
+            <div class="form-group">
+              <label for="login-user">Tài khoản / Email đăng nhập</label>
+              <input type="text" id="login-user" class="form-control" placeholder="Tên tài khoản hoặc email..." autocomplete="username">
+            </div>
+            <div class="form-group">
+              <label for="login-pass">Mật khẩu</label>
+              <div class="password-wrapper">
+                <input type="password" id="login-pass" class="form-control" placeholder="Mật khẩu..." autocomplete="current-password">
+                <button type="button" id="btn-toggle-password" class="btn btn-secondary btn-icon" title="Hiện/Ẩn mật khẩu">
+                  <i data-lucide="eye"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="auth-buttons-bar">
+            <button type="button" id="btn-open-login-tab" class="btn btn-primary">
+              <i data-lucide="external-link"></i> Mở trang đăng nhập và xác minh
+            </button>
+            <button type="button" id="btn-check-cookies" class="btn btn-secondary">
+              <i data-lucide="cookie"></i> Kiểm tra phiên đăng nhập
+            </button>
+            <button type="button" id="btn-save-credentials" class="btn btn-secondary">
+              <i data-lucide="save"></i> Lưu Thông Tin Đăng Nhập
+            </button>
+          </div>
+        </div>
+      </section></div>
+<div id="panel-advanced" class="manager-panel" role="tabpanel" aria-labelledby="tab-advanced" tabindex="0" hidden><section class="card parser-tuning-section" id="parserTuningSection">
+        <div class="card-header flex-between">
+          <h2><i data-lucide="code"></i> Vị trí lấy nội dung và cách chuyển trang mục lục</h2>
+          <span class="badge badge-neutral">Nhận diện tự động hoặc chỉ định bằng CSS</span>
+        </div>
+        <div class="card-body">
+          <p class="section-desc">
+            Khi quét tự động chưa ưng ý (trang truyện lạ, trang mới), bạn có thể tự điền các bộ chọn CSS dưới đây hoặc tùy chỉnh cơ chế phân trang đa trang. Bạn cũng có thể bấm <strong>"Đọc thử 1 chương mẫu"</strong> để xem trực tiếp định dạng nội dung trích xuất ngay trên web mà không cần tải file về kiểm tra.
+          </p>
+          <div class="grid-form selectors-form-grid">
+            <div class="form-group">
+              <label for="selector-story-title">Tiêu đề truyện</label>
+              <input type="text" id="selector-story-title" class="form-control" placeholder="h1, .novel-title, #story-title">
+            </div>
+            <div class="form-group">
+              <label for="selector-author">Tác giả</label>
+              <input type="text" id="selector-author" class="form-control" placeholder=".author, .tac-gia, a[href*='author']">
+            </div>
+            <div class="form-group">
+              <label for="selector-cover">Ảnh bìa</label>
+              <input type="text" id="selector-cover" class="form-control" placeholder=".book-thumb img, .cover img, meta[property='og:image']">
+            </div>
+            <div class="form-group">
+              <label for="selector-desc">Mô tả tóm tắt</label>
+              <input type="text" id="selector-desc" class="form-control" placeholder=".desc, .story-desc, .gioi-thieu">
+            </div>
+            <div class="form-group">
+              <label for="selector-chapter-list">Danh sách liên kết chương</label>
+              <input type="text" id="selector-chapter-list" class="form-control" placeholder="#list-chapter a, .chapter-list-item--link, .chapter-list a">
+            </div>
+            <div class="form-group">
+              <label for="selector-chapter-title">Tiêu đề từng chương</label>
+              <input type="text" id="selector-chapter-title" class="form-control" placeholder="h2.chapter-title, h2.reader-demo-chapter-heading, h1">
+            </div>
+            <div class="form-group">
+              <label for="selector-chapter-content">Nội dung chính từng chương</label>
+              <input type="text" id="selector-chapter-content" class="form-control" placeholder="#chapter-content, div.reader-demo-body, .chapter-c">
+            <small class="field-hint">Nhập bộ chọn CSS của phần thân chương, ví dụ #chapter-content.</small>
+            </div>
+            <div class="form-group">
+              <label for="selector-classes-to-remove">Lớp / Thẻ rác cần lọc bỏ</label>
+              <input type="text" id="selector-classes-to-remove" class="form-control" placeholder=".ads, .ad-banner, .watermark, script, style, .social-share">
+            </div>
+          </div>
+
+          <!-- TOC Multi-page Pagination Controls -->
+          <div class="pagination-config-box">
+            <h3 class="sub-heading"><i data-lucide="layers"></i> Cấu hình Phân Trang Mục Lục Đa Trang (truyenfull, giatocvuongtai, ...)</h3>
+            <div class="grid-form pagination-grid">
+              <div class="form-group">
+                <label for="pagination-type">Cơ chế phân trang mục lục</label>
+                <select id="pagination-type" class="form-control">
+                  <option value="auto" selected>Tự động phát hiện</option>
+                  <option value="url_pattern">Theo mẫu địa chỉ (ví dụ: trang-{page}/)</option>
+                  <option value="next_button">Theo nút chuyển trang</option>
+                  <option value="none">Trang đơn (Không phân trang)</option>
+                </select>
+            <small class="field-hint">Dùng khi mục lục chia nhiều trang. Chọn phương thức phù hợp với địa chỉ hoặc nút sang trang.</small>
+              </div>
+              <div class="form-group">
+                <label for="pagination-pattern">Mẫu địa chỉ phân trang</label>
+                <input type="text" id="pagination-pattern" class="form-control" placeholder="trang-{page}/ hoặc ?page={page}">
+              </div>
+              <div class="form-group">
+                <label for="next-page-selector">Bộ chọn CSS của nút sang trang tiếp theo</label>
+                <input type="text" id="next-page-selector" class="form-control" placeholder=".pagination .next a, a.next, //button[contains(text(), 'Sau')]">
+              </div>
+              <div class="form-group">
+                <label for="max-pagination-pages">Số trang mục lục tối đa (1–500)</label>
+                <input type="number" id="max-pagination-pages" class="form-control" min="1" max="500" value="50">
+              </div>
+              <div class="form-group checkbox-group full-width">
+                <label for="use-tab-for-toc" class="checkbox-label">
+                  <input type="checkbox" id="use-tab-for-toc">
+                  <span>🌐 Quét mục lục qua Tab trình duyệt (Khuyên dùng cho trang SPA / JavaScript như giatocvuongtai.com)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Anti-Crawler Camouflage, Hidden Text & Empty Chapter Controls -->
+          <div class="noise-cleaning-config-box">
+            <h3 class="sub-heading"><i data-lucide="shield-check"></i> Xử Lý Định Dạng Ẩn, Chữ Trắng & Chương Rỗng</h3>
+            <div class="grid-form noise-grid">
+              <div class="form-group checkbox-group full-width">
+                <label for="clean-invisible-text" class="checkbox-label">
+                  <input type="checkbox" id="clean-invisible-text" checked>
+                  <span>🧹 <strong>Tự động lọc văn bản ẩn & bẫy chống cào:</strong> Xóa thẻ chữ màu trắng (color: #fff), chữ trong suốt, font siêu nhỏ (0-1px), opacity: 0, display: none</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="empty-chapter-placeholder">Nội dung thay thế khi chương rỗng</label>
+                <input type="text" id="empty-chapter-placeholder" class="form-control" value="<p>pass</p>" placeholder="<p>pass</p>">
+                <small class="field-hint">Khi chương không có chữ (bị pass/khoá), tự động chèn để bạn kiểm tra lại sau.</small>
+              </div>
+              <div class="form-group">
+                <label for="input-custom-removal">Thêm thẻ / selector rác cần xóa tự động:</label>
+                <div class="flex-input-action">
+                  <input type="text" id="input-custom-removal" class="form-control" placeholder=".watermark, font[color='white'], .noise">
+                  <button type="button" id="btn-add-removal" class="btn btn-secondary btn-sm"><i data-lucide="plus"></i> Thêm</button>
+                </div>
+                <small class="field-hint">Nhập bộ chọn CSS rồi bấm "Thêm" để lưu vào danh sách lọc.</small>
+              </div>
+              <div class="form-group full-width">
+                <label>Danh sách thẻ rác sẽ xóa khi cào truyện:</label>
+                <div id="customRemovalsChips" class="removals-chips-container">
+                  <!-- Dynamic removal chips with (x) delete -->
+                </div>
+              </div>
+              <div class="form-group full-width">
+                <label for="input-custom-regex">Lọc văn bản rác / Watermark bằng biểu thức chính quy (Regex):</label>
+                <div class="flex-input-action">
+                  <input type="text" id="input-custom-regex" class="form-control" placeholder="Ví dụ: Nguồn:.*truyen|Truyện được đăng tại.*|Vui lòng không reup">
+                  <button type="button" id="btn-add-regex" class="btn btn-secondary btn-sm"><i data-lucide="plus"></i> Thêm Regex</button>
+                </div>
+                <small class="field-hint">Các đoạn văn bản khớp với biểu thức chính quy (không phân biệt hoa thường) sẽ bị tự động xóa sạch khỏi nội dung chương.</small>
+              </div>
+              <div class="form-group full-width">
+                <label>Danh sách mẫu Regex lọc rác:</label>
+                <div id="customRegexChips" class="removals-chips-container">
+                  <!-- Dynamic regex chips with (x) delete -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Obfuscated HTML Custom Font Center -->
+          <div class="custom-font-config-box">
+            <h3 class="sub-heading"><i data-lucide="type"></i> Phông chữ riêng cho EPUB</h3>
+            <p class="section-desc">
+              Dành cho các trang web dùng <strong>font chữ lạ hoặc mã hoá ký tự</strong> (để chống copy): Bạn chỉ cần chọn file font của trang (dạng <code>.ttf</code>, <code>.otf</code>, <code>.woff</code>, <code>.woff2</code>). Extension sẽ tự động nhúng font này vào file EPUB và cấu hình hiển thị bình thường trên mọi trình đọc sách.
+            </p>
+            <div class="grid-form font-grid">
+              <div class="form-group checkbox-group full-width">
+                <label for="custom-font-enabled" class="checkbox-label">
+                  <input type="checkbox" id="custom-font-enabled">
+                  <span>🔤 <strong>Dùng phông chữ riêng:</strong> Tự động nhúng font chữ này vào file EPUB xuất xưởng</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="custom-font-file">Chọn tệp phông chữ trên máy (.ttf, .otf, .woff, .woff2):</label>
+                <input type="file" id="custom-font-file" class="form-control" accept=".ttf,.otf,.woff,.woff2">
+              </div>
+              <div class="form-group">
+                <label for="custom-font-name">Tên họ phông chữ trong CSS:</label>
+                <input type="text" id="custom-font-name" class="form-control" value="NovelCustomFont" placeholder="NovelCustomFont">
+              </div>
+              <div class="form-group full-width flex-between font-status-row">
+                <span id="custom-font-status" class="badge badge-neutral">Chưa nạp font chữ riêng</span>
+                <button type="button" id="btn-clear-font" class="btn btn-secondary btn-sm" style="display: none;">
+                  <i data-lucide="trash-2"></i> Xóa phông chữ đã nạp
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="parser-buttons-bar">
+            <button type="button" id="btn-apply-selectors" class="btn btn-primary">
+              <i data-lucide="check"></i> Áp Dụng Cấu Hình
+            </button>
+            <button type="button" id="btn-test-chapter" class="btn btn-secondary">
+              <i data-lucide="file-search"></i> Đọc thử một chương
+            </button>
+            <button type="button" id="btn-reset-selectors" class="btn btn-secondary">
+              <i data-lucide="rotate-ccw"></i> Khôi Phục Mặc Định
+            </button>
+          </div>
+
+          <!-- Live Test Chapter Preview Container -->
+          <div id="testPreviewContainer" class="test-preview-box" style="display: none;">
+            <div class="test-preview-header">
+              <div class="test-preview-title">
+                <i data-lucide="eye"></i>
+                <span id="testPreviewChapterTitle">Xem trước định dạng chương mẫu</span>
+              </div>
+              <div class="test-preview-meta">
+                <span id="testPreviewWordCount" class="badge badge-neutral">0 từ</span>
+                <button type="button" id="btn-close-test-preview" class="btn-close-preview">&times;</button>
+              </div>
+            </div>
+            <div id="testPreviewContent" class="test-preview-content"></div>
+          </div>
+        </div>
+      </section></div>
+<div id="panel-download" class="manager-panel" role="tabpanel" aria-labelledby="tab-download" tabindex="0" hidden><section class="card"><div class="card-body">
+  <h2>Lưu tiến trình tải truyện</h2>
+  <p>Tự lưu nội dung sau mỗi chương. Mở lại tiện ích sẽ khôi phục phiên gần nhất; bấm Tải tiếp để tải các chương còn thiếu.</p>
+  <p id="progress-save-status" role="status">Chưa có phiên tải được lưu.</p>
+  <button type="button" id="btn-save-progress-now" class="btn btn-secondary">Lưu tiến trình ngay</button>
+  <button type="button" id="btn-export-progress" class="btn btn-secondary">Tải tệp tiến trình</button>
+  <label class="btn btn-secondary">Nhập tệp tiến trình <input id="import-progress-file" type="file" accept=".json,application/json"></label>
+  <p class="help-text">Tệp tiến trình chứa cả nội dung chương và mục lục, dùng để chuyển máy hoặc cài lại tiện ích. Dữ liệu tự lưu thuộc lần cài hiện tại; không gỡ tiện ích hoặc xóa dữ liệu trình duyệt trước khi sao lưu. Mỗi lần chỉ tự khôi phục phiên gần nhất.</p>
+</div></section><section class="card controls-section">
+        <div class="card-header">
+          <h2><i data-lucide="play-circle"></i> Điều khiển tải và xuất EPUB</h2>
+        </div>
+        <div class="card-body">
+          <div id="sleepOrErrorAlertNotice" class="alert-box alert-danger" style="display: none; margin-bottom: 12px; padding: 12px 14px; border-radius: 6px; background-color: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 20px; line-height: 1;">🛑</span>
+              <div>
+                <strong id="sleepAlertTitle" style="color: #ef4444; font-size: 0.95rem;">Đã tự động lưu & tạm dừng tiến trình!</strong>
+                <div id="sleepAlertDesc" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 3px;">
+                  Phát hiện máy tính vào chế độ ngủ / mất mạng hoặc lỗi chương liên tiếp. Tiến trình đã được lưu an toàn.
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" id="btn-alert-resume-crawl" class="btn btn-primary btn-sm">▶️ Tiếp tục cào</button>
+              <button type="button" id="btn-alert-retry-failed" class="btn btn-secondary btn-sm">🔄 Tải lại các chương lỗi</button>
+            </div>
+          </div>
+          <div id="passwordAlertNotice" class="alert-box alert-warning" style="display: none; margin-bottom: 12px; padding: 10px 14px; border-radius: 6px; background-color: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; align-items: center; justify-content: space-between; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="lock" style="color: #f59e0b; flex-shrink: 0;"></i>
+              <span style="font-size: 0.9rem;"><strong>Chương này có mật khẩu:</strong> Hãy nhập pass trên thẻ truyện rồi bấm <em>"Kiểm tra và tiếp tục"</em>, hoặc bấm <em>"Bỏ qua giải pass"</em> để lưu chương trống (chèn chữ pass) và cào tiếp.</span>
+            </div>
+            <button type="button" id="btn-notice-skip-pass" class="btn btn-warning btn-sm" style="flex-shrink: 0;">Bỏ qua giải pass</button>
+          </div>
+          <div class="control-buttons">
+            <button type="button" id="btn-start" class="btn btn-success" disabled>
+              <i data-lucide="download"></i> Bắt đầu Tải Truyện
+            </button>
+            <button type="button" id="btn-pause" class="btn btn-warning" disabled>
+              <i data-lucide="pause"></i> Tạm dừng
+            </button>
+            <button type="button" id="btn-stop" class="btn btn-danger" disabled>
+              <i data-lucide="square"></i> Dừng hẳn
+            </button>
+            <button type="button" id="btn-reload-tab" class="btn btn-secondary" disabled title="Tạm dừng và tải lại thẻ của chương hiện tại. Các chương đã lưu vẫn được giữ nguyên.">Tải lại thẻ</button>
+            <button type="button" id="btn-recheck-tab" class="btn btn-secondary" disabled title="Sau khi kiểm tra hoặc xác minh trên thẻ truyện, tiếp tục lấy nội dung tại vị trí đang chờ.">Kiểm tra và tiếp tục</button>
+            <button type="button" id="btn-skip-pass" class="btn btn-warning" disabled title="Bỏ qua giải pass cho chương này và chèn chữ pass để cào tiếp các chương sau.">
+              <i data-lucide="skip-forward"></i> Bỏ qua giải pass
+            </button>
+            <button type="button" id="btn-skip-wait" class="btn btn-warning" style="display: none;" title="Bỏ qua thời gian chờ hiện tại và bắt đầu tải chương tiếp theo ngay lập tức.">
+              <i data-lucide="zap"></i> Tải ngay (Bỏ qua chờ)
+            </button>
+            <button type="button" id="btn-export" class="btn btn-primary" disabled>
+              <i data-lucide="package"></i> Xuất file EPUB
+            </button>
+          </div>
+          <p class="help-text">Tải lại thẻ: tạm dừng và mở lại chương hiện tại. Kiểm tra và tiếp tục: lấy lại nội dung sau khi bạn giải mã CAPTCHA hoặc nhập mật khẩu trên thẻ truyện. Bỏ qua giải pass: chèn chương trống (chữ pass) và tiếp tục cào các chương sau.</p>
+        </div>
+      </section>
+<section class="card progress-section" id="progressSection">
+        <div class="card-header">
+          <h2><i data-lucide="activity"></i> Tiến độ Tải & Đóng gói EPUB</h2>
+        </div>
+        <div class="card-body">
+          <div class="progress-bar-container" id="progress-bar">
+            <div id="crawlProgressBar" class="progress-bar" style="width: 0%;"></div>
+          </div>
+          <div class="progress-stats">
+            <span id="progress-percentage">0% (0/0 chương)</span>
+            <span id="progress-speed">Tốc độ: 0.0 ch/s</span>
+            <span id="progress-eta">Thời gian còn lại: --:--</span>
+            <span id="progress-wait-timer" class="stat-badge wait-countdown-badge" style="display: none;">⏳ Đang chờ: 00m 00s</span>
+            <button type="button" id="btn-quick-skip-wait" class="btn btn-warning btn-xs" style="display: none; padding: 2px 8px; font-size: 0.75rem;" title="Bỏ qua chờ và tải ngay"><i data-lucide="zap"></i> Tải ngay</button>
+            <span id="active-workers" class="stat-badge">Luồng hoạt động: 0</span>
+          </div>
+          <div class="quick-wait-bar" style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-color); display: flex; align-items: center; justify-content: flex-end; gap: 14px; font-size: 0.82rem; color: var(--text-secondary); flex-wrap: wrap;">
+            <span>⏱ <strong>Thiết lập thời gian chờ:</strong></span>
+            <label class="checkbox-label" style="display: inline-flex; align-items: center; gap: 4px; margin: 0; cursor: pointer;" title="Mô phỏng thời gian đọc truyện thực tế theo số chữ của chương">
+              <input type="checkbox" id="quick-enable-wpm" checked> Nghỉ theo chữ (WPM)
+            </label>
+            <label class="checkbox-label" style="display: inline-flex; align-items: center; gap: 4px; margin: 0; cursor: pointer;" title="Gặp lỗi ở một chương thì ghi nhận vào bảng lỗi và tự động cào tiếp các chương sau (không dừng)">
+              <input type="checkbox" id="quick-skip-errors" checked> Gặp lỗi cào tiếp
+            </label>
+            <div style="display: inline-flex; align-items: center; gap: 4px;">
+              <span>Chờ tối đa:</span>
+              <input type="number" id="quick-max-wait" class="form-control" style="width: 65px; height: 26px; padding: 2px 6px; font-size: 0.8rem;" min="0" max="600" value="30" title="Giới hạn số giây chờ tối đa giữa 2 chương liên tiếp (ví dụ đặt 30s). Nhập 0 để không giới hạn.">
+              <span>giây</span>
+            </div>
+            <div style="display: inline-flex; align-items: center; gap: 4px;">
+              <span>Chờ cố định:</span>
+              <input type="number" id="quick-fixed-wait" class="form-control" style="width: 55px; height: 26px; padding: 2px 6px; font-size: 0.8rem;" min="0" max="120" value="3" title="Thời gian chờ cố định giữa các chương khi không dùng nghỉ theo chữ.">
+              <span>giây</span>
+            </div>
+            <div style="display: inline-flex; align-items: center; gap: 4px;">
+              <span>Chờ tải lại HTML:</span>
+              <input type="number" id="quick-recheck-wait" class="form-control" style="width: 55px; height: 26px; padding: 2px 6px; font-size: 0.8rem;" min="3" max="60" value="10" title="Thời gian tạm ngưng 8-9s (hoặc tùy chỉnh) để trang tự render lại HTML khi chưa thấy nội dung.">
+              <span>giây</span>
+            </div>
+          </div>
+        </div>
+      </section>
+<section class="card failed-section" id="failedSection" style="display: none;">
+        <div class="card-header flex-between">
+          <h2><i data-lucide="alert-triangle"></i> Chương tải thất bại (<span id="failedCountBadge">0</span>)</h2>
+          <button type="button" id="btn-retry-failed" class="btn btn-warning btn-sm">
+            <i data-lucide="refresh-cw"></i> Tải lại các chương lỗi
+          </button>
+        </div>
+        <div class="card-body">
+          <div id="failed-chapters" class="failed-table">
+            <table class="table" id="failedTable">
+              <thead>
+                <tr>
+                  <th>Số chương</th>
+                  <th>Tiêu đề</th>
+                  <th>Lý do lỗi</th>
+                  <th>Số lần thử</th>
+                  <th>Thời điểm</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="failedChaptersBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+<section class="card log-section">
+        <div class="card-header">
+          <h2><i data-lucide="terminal"></i> Nhật ký hoạt động</h2>
+        </div>
+        <div class="card-body">
+          <div id="activityLog" class="log-console">
+            <div class="log-entry info">[Khởi động] VTPATE đã nạp giao diện thành công.</div>
+          </div>
+        </div>
+      </section></div>
+<div id="panel-storage" class="manager-panel" role="tabpanel" aria-labelledby="tab-storage" tabindex="0" hidden><section class="card">
+    <div class="card-header"><h2>Chương đã tải và nội dung EPUB</h2></div>
+    <div class="card-body">
+      <p>Danh sách dưới đây là các chương hiện có để xuất EPUB. Mở một tệp EPUB để kiểm tra chương đã lưu trong tệp đó.</p>
+      <button id="btn-show-downloaded" class="btn btn-secondary">Xem chương đã tải</button>
+      <label class="btn btn-secondary">Mở EPUB để kiểm tra <input id="inspect-epub" type="file" accept=".epub"></label>
+      <button id="btn-clear-story-checkpoint" class="btn btn-danger">Xóa điểm dừng và tải lại từ đầu</button>
+      <p id="chapter-inventory-status">Chưa tải chương nào.</p>
+      <ol id="chapter-inventory" style="max-height: 350px; overflow: auto;"></ol>
+    </div>
+  </section>
+<section class="card storage-center-section" id="storageCenterSection">
+        <div class="card-header flex-between">
+          <h2><i data-lucide="database"></i> Lưu cấu hình và tiến trình</h2>
+          <span class="badge badge-success"><i data-lucide="check"></i> Chrome Storage Sync</span>
+        </div>
+        <div class="card-body">
+          <p class="section-desc">
+            Toàn bộ thao tác lưu trữ, sao lưu, nạp điểm dừng và chuyển đổi giữa các trang web đều được điều khiển trực quan bằng các nút bấm.
+          </p>
+          <div class="action-buttons-grid">
+            <button type="button" id="btn-save-profile" class="btn btn-secondary action-btn">
+              <i data-lucide="save"></i>
+              <span>Lưu cấu hình trang</span>
+            </button>
+            <button type="button" id="btn-load-profile" class="btn btn-secondary action-btn">
+              <i data-lucide="folder-open"></i>
+              <span>Nạp cấu hình trang</span>
+            </button>
+            <button type="button" id="btn-save-checkpoint" class="btn btn-secondary action-btn">
+              <i data-lucide="bookmark-plus"></i>
+              <span>Lưu Điểm Dừng</span>
+            </button>
+            <button type="button" id="btn-restore-checkpoint" class="btn btn-secondary action-btn">
+              <i data-lucide="bookmark-check"></i>
+              <span>Khôi Phục Điểm Dừng</span>
+            </button>
+            <button type="button" id="btn-export-profiles" class="btn btn-secondary action-btn">
+              <i data-lucide="download-cloud"></i>
+              <span>Sao lưu cấu hình ra tệp JSON</span>
+            </button>
+            <button type="button" id="btn-import-profiles" class="btn btn-secondary action-btn">
+              <i data-lucide="upload-cloud"></i>
+              <span>Khôi phục cấu hình từ tệp JSON</span>
+            </button>
+            <button type="button" id="btn-delete-profile" class="btn btn-danger action-btn">
+              <i data-lucide="trash-2"></i>
+              <span>Xóa cấu hình trang</span>
+            </button>
+          </div>
+          <!-- Hidden file input for import -->
+          <input type="file" id="importJsonFileInput" accept=".json" style="display: none;">
+
+          <!-- Saved Profiles Quick Chips / Pills -->
+          <div class="quick-profiles-wrapper">
+            <span class="label">Cấu hình đã lưu trên máy (Bấm nút để chọn nhanh):</span>
+            <div id="savedProfileChips" class="profile-chips-group">
+              <span class="empty-chips">Chưa có cấu hình nào được lưu.</span>
+            </div>
+          </div>
+        </div>
+      </section></div>
+<div id="panel-repair" class="manager-panel" role="tabpanel" aria-labelledby="tab-repair" tabindex="0" hidden><section class="card repair-section" id="repairSection">
+        <div class="card-header flex-between">
+          <h2><i data-lucide="wrench"></i> Sửa tệp EPUB</h2>
+          <span class="badge badge-neutral">Sửa tệp EPUB có sẵn</span>
+        </div>
+        <div class="card-body">
+          <p class="section-desc">
+            Bạn có file EPUB đã cào từ trước bị dính các lỗi ẩn phức tạp (chữ màu trắng, font siêu nhỏ chống cào, chữ bị xáo trộn mã font, chương bị trống, hoặc lỗi cú pháp XML làm app đọc sách không mở được)? Hãy tải file lên đây để công cụ <strong>tự động quét và sửa triệt để</strong>.
+          </p>
+
+          <div class="repair-upload-box">
+            <input type="file" id="repair-epub-file" accept=".epub" style="display: none;">
+            <button type="button" id="btn-select-repair-epub" class="btn btn-secondary">
+              <i data-lucide="upload-cloud"></i> Tải Lên File EPUB Cần Sửa Lỗi
+            </button>
+            <span id="repairFileName" class="repair-file-name">Chưa chọn file EPUB nào</span>
+          </div>
+
+          <!-- Diagnostic & Repair Results Box -->
+          <div id="repairResultsBox" class="repair-results-container" style="display: none;">
+            <div class="repair-meta-summary flex-between">
+              <div>
+                <strong id="repairBookTitle">Tiêu đề sách</strong>
+                <span id="repairBookAuthor" class="text-secondary"> - Tác giả</span>
+              </div>
+              <span id="repairChapterCountBadge" class="badge badge-success">0 chương</span>
+            </div>
+
+            <div class="repair-diagnosis-list" id="repairDiagnosisList">
+              <!-- Findings rendered here -->
+            </div>
+
+            <div class="repair-options-grid">
+              <label class="checkbox-label">
+                <input type="checkbox" id="repair-opt-invisible" checked>
+                <span>🧹 Xóa sạch chữ trắng ẩn, font siêu nhỏ (0-1px), display: none, bẫy rác chống cào</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="repair-opt-empty" checked>
+                <span>📝 Tự động chèn &lt;p&gt;pass&lt;/p&gt; vào các chương rỗng/khoá</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="repair-opt-xml" checked>
+                <span>⚙️ Chuẩn hóa strict XHTML &amp; XML (sửa thẻ tự đóng, loại bỏ control chars)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="repair-opt-mimetype" checked>
+                <span>📦 Chuẩn hóa cấu trúc IDPF OCF (mimetype uncompressed STORE tại byte 0)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="repair-opt-custom-font">
+                <span>🔤 Nhúng phông chữ riêng (đã cài ở mục 2.5) vào file EPUB này để sửa chữ mã hoá</span>
+              </label>
+            </div>
+
+            <div class="repair-actions-bar flex-between">
+              <button type="button" id="btn-run-repair-epub" class="btn btn-primary">
+                <i data-lucide="check-circle-2"></i> Bắt Đầu Sửa &amp; Tải Về File EPUB Chuẩn
+              </button>
+              <span id="repairStatusText" class="text-secondary">Sẵn sàng sửa lỗi</span>
+            </div>
+          </div>
+        </div>
+      </section></div>
+
+      <!-- Panel: Chuyển Đổi Text & Làm Sạch HTML -->
+      <div id="panel-cleaner" class="manager-panel" role="tabpanel" aria-labelledby="tab-cleaner" tabindex="0" hidden>
+        <section class="card cleaner-section">
+          <div class="card-header flex-between">
+            <h2><i data-lucide="wand-2"></i> Công Cụ Chuyển Đổi Text &amp; Làm Sạch HTML</h2>
+            <span class="badge badge-neutral" id="cleaner-status-badge">Sẵn sàng</span>
+          </div>
+          <div class="card-body">
+            <p class="section-desc">
+              Chuyển nhanh đoạn văn bản thô (copy từ web, sách, ứng dụng) thành mã HTML chuẩn từng đoạn <code>&lt;p&gt;</code>, hoặc dán mã HTML bị lỗi (chữ siêu nhỏ 0-1px, bẫy chống cào, inline style quái dị, chữ trắng ngụy trang, mã rác script/ads...) để tự động dọn sạch 100% chuẩn XHTML, sẵn sàng đọc hoặc đưa vào sách EPUB.
+            </p>
+
+            <!-- Target Chapter Rescue Banner (Shown when fixing a specific failed chapter) -->
+            <div id="cleaner-target-banner" class="alert-banner" style="display: none; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 16px;">
+              <div class="flex-between" style="align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <i data-lucide="crosshair" style="color: var(--accent-cyan);"></i>
+                  <span id="cleaner-target-text" style="font-weight: 600; color: var(--accent-cyan);">Đang cứu Chương #1: ...</span>
+                </div>
+                <button type="button" id="btn-cancel-target-rescue" class="btn btn-secondary btn-sm">Hủy ghim</button>
+              </div>
+            </div>
+
+            <!-- Mode Selector -->
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label class="form-label">Chế độ xử lý:</label>
+              <div class="mode-options-row" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <label class="radio-label">
+                  <input type="radio" name="cleanerMode" id="cleaner-mode-auto" value="auto" checked>
+                  <span>⚡ Tự động nhận diện (Khuyên dùng)</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="cleanerMode" id="cleaner-mode-text" value="text">
+                  <span>📝 Chuyển Text thô ➔ HTML paragraphs (&lt;p&gt;)</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="cleanerMode" id="cleaner-mode-html" value="html">
+                  <span>🧹 Làm sạch HTML lỗi ➔ HTML sạch</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Input Toolbar & Box -->
+            <div class="cleaner-input-container">
+              <div class="input-header flex-between" style="margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                <label for="cleaner-input" class="form-label" style="margin: 0; font-weight: 600;">
+                  Dán nội dung cần xử lý vào đây:
+                </label>
+                <div class="cleaner-toolbar-actions" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button type="button" id="btn-cleaner-paste" class="btn btn-secondary btn-sm" title="Dán nội dung từ khay nhớ tạm">
+                    <i data-lucide="clipboard"></i> Dán từ Clipboard
+                  </button>
+                  <button type="button" id="btn-cleaner-sample-text" class="btn btn-secondary btn-sm" title="Nạp đoạn văn bản thô mẫu để thử nghiệm">
+                    <i data-lucide="file-text"></i> Mẫu Text thô
+                  </button>
+                  <button type="button" id="btn-cleaner-sample-dirty" class="btn btn-secondary btn-sm" title="Nạp mã HTML mẫu có chữ nhỏ và bẫy rác">
+                    <i data-lucide="alert-triangle"></i> Mẫu HTML lỗi
+                  </button>
+                  <label class="btn btn-secondary btn-sm" style="cursor: pointer; margin: 0;" title="Nạp nội dung từ file .txt hoặc .html trên máy">
+                    <i data-lucide="upload"></i> Chọn file
+                    <input type="file" id="cleaner-file-input" accept=".txt,.html,.htm" style="display: none;">
+                  </label>
+                  <button type="button" id="btn-cleaner-clear" class="btn btn-secondary btn-sm" title="Xóa trắng nội dung nhập">
+                    <i data-lucide="trash-2"></i> Xóa trắng
+                  </button>
+                </div>
+              </div>
+
+              <textarea id="cleaner-input" class="form-control" rows="9" placeholder="Dán văn bản bạn copy hoặc dán mã HTML lỗi (chữ nhỏ li ti, định dạng lạ, màu trắng, font lạ, script/ads...) vào đây..."></textarea>
+
+              <div class="cleaner-input-meta flex-between" style="margin-top: 6px; font-size: 12px; color: var(--text-secondary);">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                  <span id="cleaner-input-chars">0 ký tự</span>
+                  <span id="cleaner-detected-badge" class="badge badge-neutral">Chưa có dữ liệu</span>
+                </div>
+                <label class="checkbox-label" style="margin: 0; font-size: 12px;">
+                  <input type="checkbox" id="cleaner-auto-clean" checked>
+                  <span>Tự động làm sạch ngay khi dán</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Cleaning & Formatting Options Accordion/Grid -->
+            <div class="repair-options-grid" style="margin-top: 16px;">
+              <label class="checkbox-label">
+                <input type="checkbox" id="cleaner-opt-micro" checked>
+                <span>🧹 Xóa chữ siêu nhỏ &amp; bẫy li ti (font-size &lt;= 1px, 0.1em, xx-small, font size=1)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="cleaner-opt-invisible" checked>
+                <span>👻 Xóa chữ tàng hình &amp; ngụy trang (màu trắng, rgba trong suốt, display: none, opacity: 0)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="cleaner-opt-strip-styles" checked>
+                <span>🎨 Gỡ bỏ inline style quái dị (font lạ, font-size cứng, màu nền, mso-* từ Word)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="cleaner-opt-strip-junk" checked>
+                <span>🚫 Xóa mã rác &amp; quảng cáo (script, style, iframe, form, ads banner, audio/video, svg)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="cleaner-opt-clean-attrs" checked>
+                <span>🏷️ Dọn dẹp thuộc tính rác (class rác, id, data-p-id, onclick)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="cleaner-opt-auto-paragraphs" checked>
+                <span>📄 Tự động chuẩn hóa ngắt đoạn (&lt;p&gt;...&lt;/p&gt;, gộp dòng trắng thừa)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="cleaner-opt-xhtml" checked>
+                <span>⚙️ Chuẩn hóa strict XHTML (tự đóng &lt;br/&gt;, &lt;hr/&gt;, &lt;img .../&gt;, escape ký tự)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="cleaner-opt-headings" checked>
+                <span>📑 Tự động nhận diện tiêu đề chương (Chương X:... ➔ &lt;h3&gt;)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="cleaner-opt-quotes" checked>
+                <span>💬 Chuẩn hóa gạch đầu dòng đối thoại (—)</span>
+              </label>
+            </div>
+
+            <!-- Custom Removal Input -->
+            <div class="form-group" style="margin-top: 12px;">
+              <label for="cleaner-custom-removals" class="form-label" style="font-size: 13px;">
+                Bộ lọc từ rác / watermark hoặc CSS selector tùy chỉnh (cách nhau bởi dấu phẩy):
+              </label>
+              <input type="text" id="cleaner-custom-removals" class="form-control" placeholder=".watermark, .ads-banner, Truyện được dịch tại..., Chúc bạn đọc truyện vui vẻ...">
+            </div>
+
+            <!-- Action Button -->
+            <div class="cleaner-actions-bar" style="margin-top: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <button type="button" id="btn-run-clean" class="btn btn-primary" style="padding: 10px 20px;">
+                <i data-lucide="sparkles"></i> Chuyển Đổi &amp; Làm Sạch Ngay
+              </button>
+            </div>
+
+            <!-- Results Section -->
+            <div id="cleaner-results-box" class="repair-results-container" style="display: none; margin-top: 20px;">
+              <div class="repair-meta-summary flex-between" style="flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  <strong style="font-size: 14px;"><i data-lucide="check-circle-2" style="color: var(--color-success); vertical-align: middle;"></i> Kết Quả Xử Lý:</strong>
+                  <span id="cleaner-stat-paras" class="badge badge-success">0 đoạn</span>
+                  <span id="cleaner-stat-words" class="badge badge-neutral">0 từ</span>
+                  <span id="cleaner-stat-chars" class="badge badge-neutral">0 ký tự</span>
+                  <span id="cleaner-stat-cleaned" class="badge badge-warning">Đã dọn 0 mục rác</span>
+                </div>
+
+                <!-- View Mode Buttons -->
+                <div class="btn-group" style="display: flex; gap: 4px;">
+                  <button type="button" id="btn-view-code" class="btn btn-secondary btn-sm active">💻 Mã HTML Sạch</button>
+                  <button type="button" id="btn-view-preview" class="btn btn-secondary btn-sm">👁️ Xem trước trang đọc</button>
+                </div>
+              </div>
+
+              <!-- View 1: HTML Code Output -->
+              <div id="cleaner-code-view-container">
+                <textarea id="cleaner-output-code" class="form-control" rows="12" readonly style="font-family: monospace; font-size: 13px; background: rgba(0, 0, 0, 0.3);"></textarea>
+              </div>
+
+              <!-- View 2: Live Reader Preview -->
+              <div id="cleaner-preview-view-container" style="display: none;">
+                <div id="cleaner-output-preview" class="cleaner-preview-box">
+                  <!-- Rendered chapter preview -->
+                </div>
+              </div>
+
+              <!-- Output Action Toolbar & Chapter Rescue -->
+              <div class="repair-actions-bar flex-between" style="margin-top: 12px; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button type="button" id="btn-copy-clean-html" class="btn btn-secondary">
+                    <i data-lucide="copy"></i> Sao chép HTML sạch
+                  </button>
+                  <button type="button" id="btn-download-clean-html" class="btn btn-secondary">
+                    <i data-lucide="download"></i> Tải file .html
+                  </button>
+                </div>
+
+                <!-- Rescue / Chapter Integration Actions -->
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  <button type="button" id="btn-save-as-chapter" class="btn btn-secondary" title="Đưa nội dung này vào truyện hiện tại làm một chương mới">
+                    <i data-lucide="plus-circle"></i> Thêm vào truyện (Chương mới)
+                  </button>
+                  <div style="display: inline-flex; align-items: center; gap: 6px;">
+                    <select id="cleaner-target-chapter-select" class="form-control form-control-sm" style="width: auto; min-width: 170px;" title="Chọn chương lỗi hoặc chương cần thay thế">
+                      <option value="">-- Chọn chương để cứu --</option>
+                    </select>
+                    <button type="button" id="btn-patch-target-chapter" class="btn btn-primary btn-sm" title="Gán nội dung sạch vào chương này và xóa khỏi danh sách lỗi">
+                      <i data-lucide="check-circle-2"></i> Lưu vào chương
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </div></main>
+
+    <!-- App Footer -->
+    <footer class="app-footer">
+      <p>VTPATE v1.0.0 &copy; 2026. Chuẩn Manifest V3 & IDPF EPUB OCF/OPS. Tạo EPUB trên máy.</p>
+    </footer>
+  </div>
+
+  <!-- Manual Chapter Links Input Modal -->
+  <div id="manualChaptersModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header flex-between">
+        <h3><i data-lucide="list-plus"></i> Nhập / Cập Nhật Danh Sách Chương Thủ Công</h3>
+        <button type="button" id="btn-close-manual-modal" class="btn-close-preview">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="section-desc">
+          Dán danh sách đường dẫn chương vào khung bên dưới (mỗi chương 1 dòng). Hỗ trợ cú pháp:
+          <br>• Chỉ dán URL: <code>https://giatocvuongtai.com/truyen/chuong-1</code>
+          <br>• Kèm tiêu đề: <code>Chương 1: Mở đầu | https://giatocvuongtai.com/truyen/chuong-1</code>
+        </p>
+
+        <!-- Quick Range Link Generator -->
+        <div class="range-generator-box" style="margin-bottom: 14px; padding: 12px; background: rgba(255, 255, 255, 0.04); border: 1px dashed var(--border-color); border-radius: var(--radius-sm);">
+          <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            <i data-lucide="sparkles"></i> Tạo nhanh danh sách link theo dãy số (Range Generator)
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <input type="text" id="manual-pattern-url" class="form-control" style="flex: 2; min-width: 220px;" placeholder="https://domain.com/chuong-{n}">
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <span style="font-size: 12px; color: var(--text-secondary);">Từ:</span>
+              <input type="number" id="manual-pattern-from" class="form-control" style="width: 70px;" value="1" min="1">
+              <span style="font-size: 12px; color: var(--text-secondary);">Đến:</span>
+              <input type="number" id="manual-pattern-to" class="form-control" style="width: 70px;" value="50" min="1">
+            </div>
+            <button type="button" id="btn-generate-pattern-links" class="btn btn-secondary btn-sm">
+              <i data-lucide="plus"></i> Tạo dãy link
+            </button>
+          </div>
+          <div style="font-size: 11px; color: var(--text-secondary); margin-top: 6px;">
+            Dùng <code>{n}</code> để chỉ số thứ tự chương (vd: <code>https://giatocvuongtai.com/truyen/chuong-{n}</code>).
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="manualChaptersTextarea">Danh sách liên kết chương (mỗi dòng 1 chương):</label>
+          <textarea id="manualChaptersTextarea" class="form-control manual-textarea" rows="10" placeholder="https://giatocvuongtai.com/truyen/chuong-1&#10;https://giatocvuongtai.com/truyen/chuong-2&#10;Chương 3: Bí cảnh | https://giatocvuongtai.com/truyen/chuong-3"></textarea>
+        </div>
+        <div class="modal-stats flex-between">
+          <span id="manualChaptersCountBadge" class="badge badge-neutral">0 link được nhận diện</span>
+          <button type="button" id="btn-clear-manual-text" class="btn btn-secondary btn-sm">Xóa trắng</button>
+        </div>
+      </div>
+      <div class="modal-footer flex-between">
+        <button type="button" id="btn-cancel-manual" class="btn btn-secondary">Đóng</button>
+        <button type="button" id="btn-apply-manual-chapters" class="btn btn-primary">
+          <i data-lucide="check-circle-2"></i> Áp Dụng Vào Danh Sách Chương
+        </button>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- Offline Script Dependencies (Loaded in dependency order) -->
+  <script src="libs/lucide.min.js"></script>
+  <script src="libs/jszip.min.js"></script>
+  <script src="src/crawler/fetch-downloader.js"></script>
+  <script src="src/crawler/tab-downloader.js"></script>
+  <script src="src/crawler/net-rules.js"></script>
+  <script src="src/crawler/crawl-engine.js"></script>
+  <script src="src/storage/profile-manager.js"></script>
+  <script src="src/storage/session-manager.js"></script>
+  <script src="src/parsers/base-parser.js"></script>
+  <script src="src/parsers/generic-parser.js"></script>
+  <script src="src/parsers/inkitt-parser.js"></script>
+  <script src="src/parsers/wattpad-parser.js"></script>
+  <script src="src/parsers/parser-registry.js"></script>
+  <script src="src/epub/epub-templates.js"></script>
+  <script src="src/epub/epub-css.js"></script>
+  <script src="src/epub/epub-packer.js"></script>
+  <script src="src/epub/epub-repairer.js"></script>
+  <script src="src/parsers/html-cleaner.js"></script>
+  <script src="manager-tabs.js"></script>
+  <script src="manager.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# Dependency directories
+node_modules/
+
+# Local cache & browser testing profiles
+.chrome_profile/
+.test_chrome_cdp/
+__pycache__/
+*.pyc
+
+# Local runtime & test outputs
+checkpoints/
+epubs/
+covers/
+*.log
+
+# Reference cloned repository
+WebToEpub/
+
+# OS metadata
+.DS_Store
+Thumbs.db

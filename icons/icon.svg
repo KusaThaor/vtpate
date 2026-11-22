@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0ea5e9" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Rounded Extension Icon Container -->
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="url(#bgGrad)" filter="url(#shadow)" />
+
+  <!-- Open Book Back Pages -->
+  <path d="M28 34 C44 34, 58 38, 64 42 C70 38, 84 34, 100 34 L100 86 C84 86, 70 90, 64 94 C58 90, 44 86, 28 86 Z" fill="#ffffff" fill-opacity="0.95" />
+
+  <!-- Book Spine Center -->
+  <line x1="64" y1="42" x2="64" y2="94" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- Page Contour Lines (Text Lines Left) -->
+  <line x1="36" y1="48" x2="56" y2="48" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" />
+  <line x1="36" y1="56" x2="56" y2="56" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" />
+  <line x1="36" y1="64" x2="52" y2="64" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" />
+  <line x1="36" y1="72" x2="54" y2="72" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" />
+
+  <!-- Download Arrow (Centered) -->
+  <path d="M64 44 L64 74 M52 64 L64 76 L76 64" fill="none" stroke="url(#arrowGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Bottom Tray / Disk Indicator -->
+  <path d="M72 82 L92 82" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" />
+</svg>

@@ -1,0 +1,33 @@
+VTPATE 1.0.3 — CÀI ĐẶT VÀ GIỮ TIẾN TRÌNH
+
+1. CÀI TỪ ZIP
+Giải nén VTPATE-extension-1.0.3.zip vào một thư mục cố định.
+Ngay trong thư mục vừa giải nén phải có manifest.json, manager.html và các thư mục src, background, popup, icons, libs.
+Mở coccoc://extensions, bật chế độ dành cho nhà phát triển, chọn Tải tiện ích đã giải nén và chọn chính thư mục có manifest.json.
+
+2. CẬP NHẬT MÀ GIỮ DỮ LIỆU CŨ
+Dừng hẳn phiên đang tải và chờ lưu xong; xuất EPUB dự phòng nếu muốn.
+Giải nén đè bản mới vào ĐÚNG thư mục mà tiện ích hiện tại đang dùng. Không gỡ tiện ích rồi cài lại từ đường dẫn khác.
+Bấm Tải lại trên thẻ tiện ích trong coccoc://extensions, đóng giao diện quản lý cũ rồi mở lại.
+Nếu bản cũ chỉ có điểm dừng kiểu cũ, mở Chương đã tải và lưu trữ, bấm Khôi phục điểm dừng một lần. Khôi phục thành công sẽ chuyển sang kiểu lưu đầy đủ mới.
+
+3. TỰ LƯU VÀ TẢI TIẾP
+Tiện ích lưu cả mục lục, thông tin truyện, cấu hình, chương đang chờ và nội dung chương đã tải vào bộ nhớ trên máy.
+Sau mỗi chương lấy thành công, dữ liệu được ghi trước khi sang chương tiếp theo. Dòng Đã lưu X/Y chương là trạng thái ghi gần nhất.
+Đóng giao diện, tải lại trang, thoát trình duyệt hoặc khởi động lại máy: lần mở tiếp theo tự khôi phục phiên gần nhất. Bấm Tải tiếp để chạy; chương đã lưu không bị lấy lại.
+Chương đang tải dở lúc tắt máy có thể cần tải lại. Máy tắt đột ngột khi đang ghi chỉ bảo đảm đến lần ghi hoàn tất trước đó.
+Tạm dừng giữ phiên để kiểm tra. Dừng hẳn kết thúc phiên đang chạy nhưng vẫn giữ dữ liệu đã lưu.
+Chỉ tự khôi phục phiên gần nhất. Muốn giữ nhiều truyện, tải một tệp tiến trình riêng cho mỗi truyện trước khi chuyển sang truyện mới.
+
+4. LƯU TỆP ĐỂ CHUYỂN MÁY HOẶC CÀI LẠI
+Trong Tải và nhật ký:
+- Lưu tiến trình ngay: ghi dữ liệu hiện tại vào bộ nhớ của tiện ích.
+- Tải tệp tiến trình: tạo tệp JSON chứa cả nội dung các chương, mục lục và cấu hình. Chọn nơi lưu rồi kiểm tra tệp trong mục tải xuống.
+- Nhập tệp tiến trình: chọn tệp JSON đã lưu, khôi phục, rồi bấm Tải tiếp hoặc Xuất EPUB.
+Tệp tiến trình khác tệp sao lưu cấu hình trang và khác EPUB. EPUB dùng để đọc; tệp tiến trình dùng để tiếp tục tải.
+Nếu gỡ tiện ích, xóa dữ liệu trình duyệt, đổi hồ sơ trình duyệt hoặc đổi đường dẫn cài đặt, hãy giữ tệp tiến trình để nhập lại. Không dựa vào dữ liệu của lần cài cũ.
+Nếu ghi bộ nhớ thất bại, tiện ích báo lỗi và tạm dừng; hãy tải tệp tiến trình trước khi đóng.
+
+5. TẢI LẠI THẺ VÀ XÁC MINH
+Tải lại thẻ giữ tạm dừng sau khi mở lại trang. Tự kiểm tra/xác minh trên thẻ truyện rồi bấm Kiểm tra và tiếp tục.
+Nội dung hiện ra được lấy và lưu; việc cuộn dùng thời gian nghỉ. Nếu chương đã lưu thì tiếp tục thời gian nghỉ còn lại.

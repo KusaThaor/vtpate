@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VTPATE – Tải truyện</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="header">
+      <div class="logo-group">
+        <div class="logo-icon" data-lucide="book-open"></div>
+        <div class="logo-text">
+          <h1>VTPATE</h1>
+          <span class="badge">Tải truyện và tạo EPUB</span>
+        </div>
+      </div>
+      <button id="btnSettings" class="icon-btn" title="Cài đặt">
+        <span data-lucide="settings"></span>
+      </button>
+    </header>
+
+    <div class="current-site-panel">
+      <div class="site-status" id="siteStatus">
+        <span class="status-indicator idle"></span>
+        <span class="status-label" id="statusLabel">Đang kiểm tra tab hiện tại...</span>
+      </div>
+      <div class="novel-info" id="novelInfo" style="display: none;">
+        <h2 id="novelTitle" class="novel-title"></h2>
+        <p id="novelDomain" class="novel-domain"></p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="btnQuickCrawl" class="primary-btn" disabled>
+        <span data-lucide="download"></span>
+        <span>Tải nhanh truyện này</span>
+      </button>
+      <button id="btnOpenManager" class="secondary-btn">
+        <span data-lucide="external-link"></span>
+        <span>Mở trang quản lý</span>
+      </button>
+    </div>
+
+    <footer class="footer">
+      <span class="version">v1.0.0 • Đóng gói EPUB trên máy</span>
+    </footer>
+  </div>
+
+  <script src="../libs/lucide.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

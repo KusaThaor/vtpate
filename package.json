@@ -1,0 +1,24 @@
+{
+  "name": "vtpate",
+  "version": "1.0.0",
+  "description": "Chrome Extension Web Novel Scraper & EPUB Packaging Studio",
+  "main": "background/background.js",
+  "scripts": {
+    "generate-icons": "node scripts/generate-icons.js",
+    "fetch-jszip": "node scripts/fetch-jszip.js",
+    "test": "node tests/test-runner.js",
+    "test:m1": "node tests/test-runner.js --milestone M1",
+    "test:m2": "node tests/test-runner.js --milestone M2",
+    "test:adversarial": "node tests/adversarial-m1-empirical.js"
+  },
+  "keywords": [
+    "chrome-extension",
+    "manifest-v3",
+    "web-novel-scraper",
+    "epub-packaging",
+    "jszip",
+    "offline"
+  ],
+  "author": "VTPATE Team",
+  "license": "MIT"
+}
