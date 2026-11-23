@@ -959,6 +959,32 @@ body.theme-palette-pastel .setting-switch-card:hover {
   accent-color: var(--accent-primary);
 }
 
+.overwrite-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.overwrite-toggle-label:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.overwrite-toggle-label.active {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #ef4444 !important;
+  font-weight: 600;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;

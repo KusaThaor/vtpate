@@ -153,6 +153,9 @@
             <button type="button" id="btn-select-all" class="btn btn-secondary btn-sm">
               <i data-lucide="check-square"></i> Chọn tất cả
             </button>
+            <button type="button" id="btn-select-missing" class="btn btn-secondary btn-sm" title="Chỉ chọn những chương chưa được tải vào máy">
+              <i data-lucide="check-circle-2"></i> Chỉ chọn chưa tải
+            </button>
             <button type="button" id="btn-deselect-all" class="btn btn-secondary btn-sm">
               <i data-lucide="square"></i> Bỏ chọn tất cả
             </button>
@@ -739,10 +742,14 @@
             <button type="button" id="btn-notice-skip-pass" class="btn btn-warning btn-sm" style="flex-shrink: 0;">Bỏ qua giải pass</button>
           </div>
           <div class="control-buttons">
-            <button type="button" id="btn-start" class="btn btn-success" disabled>
+            <button type="button" id="btn-start" class="btn btn-success" disabled title="Bắt đầu tải truyện hoặc tải tiếp các chương còn thiếu">
               <i data-lucide="download"></i> Bắt đầu Tải Truyện
             </button>
-            <button type="button" id="btn-pause" class="btn btn-warning" disabled>
+            <label class="checkbox-label overwrite-toggle-label" id="quickOverwriteLabel" style="display: inline-flex; align-items: center; gap: 6px; margin: 0 4px; padding: 6px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.82rem; cursor: pointer; background: var(--bg-card); user-select: none;" title="Mặc định TẮT (tải tiếp các chương còn thiếu và bảo lưu toàn bộ chương đã có). BẬT nếu bạn muốn crawl lại từ web và ghi đè nội dung mới lên các chương đã lưu trong máy.">
+              <input type="checkbox" id="quick-force-overwrite">
+              <span id="quickForceOverwriteText">Ghi đè chương đã có</span>
+            </label>
+            <button type="button" id="btn-pause" class="btn btn-warning" disabled title="Tạm dừng hoặc Tiếp tục phiên tải đang chạy trên tab này. Nếu đã tắt trình duyệt và mở lại, hãy bấm nút Tải tiếp màu xanh.">
               <i data-lucide="pause"></i> Tạm dừng
             </button>
             <button type="button" id="btn-stop" class="btn btn-danger" disabled>

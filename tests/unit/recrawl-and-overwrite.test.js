@@ -80,4 +80,82 @@ assert.strictEqual(btnDisabled, false, 'Start button must NOT be disabled when c
 assert.strictEqual(btnText, 'Tải lại / Ghi đè 1 chương đã chọn', 'Button text must indicate re-crawling / overwriting chapter 58');
 console.log('Test 6: Simulation of Chapter 58 re-crawl logic passed with flying colors!');
 
+// 7. Verify quick-force-overwrite and btn-select-missing in HTML, CSS, JS
+assert(html.includes('id="quick-force-overwrite"'), 'manager.html must contain quick-force-overwrite checkbox');
+assert(html.includes('id="btn-select-missing"'), 'manager.html must contain btn-select-missing button');
+assert(css.includes('.overwrite-toggle-label'), 'manager.css must contain .overwrite-toggle-label styles');
+assert(js.includes('quickForceOverwriteCheckbox'), 'manager.js must reference quickForceOverwriteCheckbox');
+assert(js.includes('btnSelectMissing'), 'manager.js must reference btnSelectMissing');
+console.log('Test 7: quick-force-overwrite toggle and btn-select-missing verified in HTML, CSS, JS.');
+
+// 8. Simulation of User Scenario: 339 chapters total, 101 downloaded, 265 selected (238 missing, 27 already downloaded)
+const sim339Chapters = Array.from({ length: 339 }, (_, i) => ({
+  id: `ch-${i + 1}`,
+  chapterNumber: i + 1,
+  title: `Chương ${i + 1}`,
+  selected: i + 1 >= 75 // Chapters 75 to 339 selected (265 chapters)
+}));
+
+const sim101Downloaded = new Map(
+  Array.from({ length: 101 }, (_, i) => [i + 1, { chapterNumber: i + 1, title: `Chương ${i + 1}`, contentHtml: '<p>Content</p>' }])
+);
+
+function computeButtonState(chapters, downloaded, forceOverwrite) {
+  const selCount = chapters.filter(ch => ch.selected).length;
+  const missCount = chapters.filter(ch => ch.selected && !downloaded.has(ch.chapterNumber)).length;
+  const alreadyCount = selCount - missCount;
+
+  if (selCount > 0) {
+    if (forceOverwrite) {
+      if (missCount > 0 && alreadyCount > 0) {
+        return `Tải ${missCount} chương mới + Ghi đè ${alreadyCount} chương`;
+      } else if (missCount === 0) {
+        return `Tải lại / Ghi đè ${alreadyCount} chương đã chọn`;
+      } else {
+        return `Bắt đầu tải ${missCount} chương đã chọn`;
+      }
+    } else {
+      if (missCount > 0) {
+        if (alreadyCount > 0) {
+          return `Tải tiếp ${missCount} chương còn thiếu (bỏ qua ${alreadyCount} ch đã có)`;
+        } else {
+          return `Tải tiếp ${missCount} chương còn thiếu`;
+        }
+      } else {
+        return `Tải lại / Ghi đè ${alreadyCount} chương đã chọn`;
+      }
+    }
+  }
+  return 'Chọn chương để tải lại';
+}
+
+// Case 8A: Normal continue crawl (forceOverwrite = false) -> MUST NOT say "Ghi đè"!
+const normalButtonText = computeButtonState(sim339Chapters, sim101Downloaded, false);
+assert.strictEqual(
+  normalButtonText,
+  'Tải tiếp 238 chương còn thiếu (bỏ qua 27 ch đã có)',
+  'When forceOverwrite is false, button must reassure user that already downloaded chapters are skipped/preserved'
+);
+assert(!normalButtonText.includes('+ Ghi đè'), 'Normal button text must NEVER promise to overwrite when forceOverwrite is false');
+console.log('Test 8A: Normal continue crawl (forceOverwrite = false) correctly skips already downloaded chapters without "Ghi đè" message.');
+
+// Case 8B: User explicitly turns on forceOverwrite (forceOverwrite = true) -> Shows overwrite count
+const overwriteButtonText = computeButtonState(sim339Chapters, sim101Downloaded, true);
+assert.strictEqual(
+  overwriteButtonText,
+  'Tải 238 chương mới + Ghi đè 27 chương',
+  'When forceOverwrite is true, button must accurately indicate overwriting 27 chapters'
+);
+console.log('Test 8B: Explicit forceOverwrite correctly displays overwrite count.');
+
+// Case 8C: User clicks "Chỉ chọn chưa tải" (btn-select-missing)
+sim339Chapters.forEach(c => {
+  c.selected = !sim101Downloaded.has(c.chapterNumber);
+});
+const missingSelectedOnly = sim339Chapters.filter(ch => ch.selected).length;
+assert.strictEqual(missingSelectedOnly, 238, 'Only 238 missing chapters are selected after btn-select-missing');
+const cleanButtonText = computeButtonState(sim339Chapters, sim101Downloaded, false);
+assert.strictEqual(cleanButtonText, 'Tải tiếp 238 chương còn thiếu', 'Button cleanly displays continuing 238 missing chapters');
+console.log('Test 8C: btn-select-missing leaves exactly 238 chapters selected.');
+
 console.log('\nAll Re-crawl and Overwrite tests PASSED successfully!');

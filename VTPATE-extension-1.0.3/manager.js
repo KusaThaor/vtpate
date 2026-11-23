@@ -181,6 +181,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const rangeToInput = document.getElementById('range-to');
   const btnApplyRange = document.getElementById('btn-apply-range');
   const forceOverwriteCheckbox = document.getElementById('force-overwrite-chapters');
+  const quickForceOverwriteCheckbox = document.getElementById('quick-force-overwrite');
+  const quickOverwriteLabel = document.getElementById('quickOverwriteLabel');
+  const quickForceOverwriteText = document.getElementById('quickForceOverwriteText');
+  const btnSelectMissing = document.getElementById('btn-select-missing');
   const chapterListContainer = document.getElementById('chapter-list');
 
   // Multi-page Pagination Selectors
@@ -1210,7 +1214,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const forceOverwrite = forceOverwriteCheckbox ? Boolean(forceOverwriteCheckbox.checked) : false;
+    const forceOverwrite = (forceOverwriteCheckbox && forceOverwriteCheckbox.checked) ||
+                           (quickForceOverwriteCheckbox && quickForceOverwriteCheckbox.checked) || false;
     const selectedCount = state.chapters.filter(ch => ch.selected).length;
     const missingSelected = state.chapters.filter(ch => ch.selected && !state.downloadedChapters.has(ch.chapterNumber)).length;
     const alreadyDownloadedSelected = selectedCount - missingSelected;
@@ -1218,13 +1223,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (selectedCount > 0) {
       btnStart.disabled = false;
       if (forceOverwrite) {
-        btnStart.textContent = `Tải lại / Ghi đè ${selectedCount} chương đã chọn`;
-      } else if (missingSelected > 0 && alreadyDownloadedSelected === 0) {
-        btnStart.textContent = `Tải tiếp ${missingSelected} chương còn thiếu`;
-      } else if (missingSelected === 0 && alreadyDownloadedSelected > 0) {
-        btnStart.textContent = `Tải lại / Ghi đè ${alreadyDownloadedSelected} chương đã chọn`;
+        if (missingSelected > 0 && alreadyDownloadedSelected > 0) {
+          btnStart.textContent = `Tải ${missingSelected} chương mới + Ghi đè ${alreadyDownloadedSelected} chương`;
+        } else if (missingSelected === 0) {
+          btnStart.textContent = `Tải lại / Ghi đè ${alreadyDownloadedSelected} chương đã chọn`;
+        } else {
+          btnStart.textContent = `Bắt đầu tải ${missingSelected} chương đã chọn`;
+        }
       } else {
-        btnStart.textContent = `Tải ${missingSelected} chương mới + Ghi đè ${alreadyDownloadedSelected} chương`;
+        // Chế độ bình thường: KHÔNG GHI ĐÈ, bảo lưu toàn bộ các chương đã có trong máy
+        if (missingSelected > 0) {
+          if (alreadyDownloadedSelected > 0) {
+            btnStart.textContent = `Tải tiếp ${missingSelected} chương còn thiếu (bỏ qua ${alreadyDownloadedSelected} ch đã có)`;
+          } else {
+            btnStart.textContent = `Tải tiếp ${missingSelected} chương còn thiếu`;
+          }
+        } else {
+          // Người dùng chỉ chọn riêng các chương đã tải: bấm vào là để tải lại các chương đó
+          btnStart.textContent = `Tải lại / Ghi đè ${alreadyDownloadedSelected} chương đã chọn`;
+        }
       }
     } else {
       const totalMissing = state.chapters.filter(ch => !state.downloadedChapters.has(ch.chapterNumber)).length;
@@ -1233,8 +1250,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  function syncForceOverwriteState(isChecked) {
+    if (forceOverwriteCheckbox) forceOverwriteCheckbox.checked = isChecked;
+    if (quickForceOverwriteCheckbox) quickForceOverwriteCheckbox.checked = isChecked;
+    if (quickOverwriteLabel) {
+      if (isChecked) {
+        quickOverwriteLabel.classList.add('active');
+        if (quickForceOverwriteText) quickForceOverwriteText.textContent = '⚠️ Ghi đè: ĐANG BẬT';
+      } else {
+        quickOverwriteLabel.classList.remove('active');
+        if (quickForceOverwriteText) quickForceOverwriteText.textContent = 'Ghi đè chương đã có';
+      }
+    }
+    updateCrawlButtonState();
+  }
+
   if (forceOverwriteCheckbox) {
-    forceOverwriteCheckbox.addEventListener('change', updateCrawlButtonState);
+    forceOverwriteCheckbox.addEventListener('change', (e) => syncForceOverwriteState(e.target.checked));
+  }
+  if (quickForceOverwriteCheckbox) {
+    quickForceOverwriteCheckbox.addEventListener('change', (e) => syncForceOverwriteState(e.target.checked));
   }
 
   async function recrawlSingleChapter(chapterNumber) {
@@ -1828,7 +1863,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btnStop) btnStop.disabled = true;
     if (rangeFromInput) rangeFromInput.value = '1';
     if (rangeToInput) rangeToInput.value = String(state.chapters.length);
-    updateProgressUI(state.downloadedChapters.size, state.downloadedChapters.size + remaining, state.failedChapters.length, 0, 0);
+    const totalStoryCount = state.chapters.length || (state.downloadedChapters.size + remaining);
+    updateProgressUI(state.downloadedChapters.size, totalStoryCount, state.failedChapters.length, 0, 0);
     setStage('IDLE');
     setSaveStatus(`Đã khôi phục ${state.downloadedChapters.size} chương đã lưu; còn ${remaining} chương đã chọn cần tải. Bấm Tải tiếp để chạy.`);
     appendLog(`Đã khôi phục phiên “${saved.metadata.title}” từ dữ liệu đã lưu: ${state.downloadedChapters.size} chương có nội dung, ${remaining} chương còn chờ.`, 'success');
@@ -2659,7 +2695,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnSelectAll.addEventListener('click', () => {
       state.chapters.forEach((c) => (c.selected = true));
       renderChapterList();
+      updateCrawlButtonState();
       appendLog('Đã chọn toàn bộ danh sách chương.');
+    });
+  }
+
+  if (btnSelectMissing) {
+    btnSelectMissing.addEventListener('click', () => {
+      state.chapters.forEach((c) => {
+        c.selected = !state.downloadedChapters.has(c.chapterNumber);
+      });
+      renderChapterList();
+      updateCrawlButtonState();
+      const count = state.chapters.filter(c => c.selected).length;
+      appendLog(`Đã chọn ${count} chương còn thiếu để tải tiếp.`);
     });
   }
 
@@ -2667,6 +2716,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnDeselectAll.addEventListener('click', () => {
       state.chapters.forEach((c) => (c.selected = false));
       renderChapterList();
+      updateCrawlButtonState();
       appendLog('Đã bỏ chọn toàn bộ danh sách chương.');
     });
   }
@@ -2700,6 +2750,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       renderChapterList();
+      updateCrawlButtonState();
       appendLog(`Đã áp dụng chọn khoảng chương từ ${fromVal} đến ${toVal}.`);
     });
   }
@@ -2874,7 +2925,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function startSelectedCrawl() {
-    const titleVal = novelTitleInput ? novelTitleInput.value.trim() : '';
+    const titleVal = (novelTitleInput ? novelTitleInput.value.trim() : '') || state.novelMetadata?.title || 'Truyện Web';
     if (!titleVal) {
       const errMsg = 'Tên truyện không được để trống';
       appendLog(errMsg, 'error');
@@ -2882,15 +2933,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const forceOverwrite = forceOverwriteCheckbox ? Boolean(forceOverwriteCheckbox.checked) : false;
+    const forceOverwrite = (forceOverwriteCheckbox && forceOverwriteCheckbox.checked) ||
+                           (quickForceOverwriteCheckbox && quickForceOverwriteCheckbox.checked) || false;
     let selectedChapters = [];
 
     if (forceOverwrite) {
       selectedChapters = state.chapters.filter((c) => c.selected);
+      appendLog(`⚠️ Chế độ GHI ĐÈ: Đang tải lại và ghi đè toàn bộ ${selectedChapters.length} chương đã chọn (kể cả các chương đã lưu trong máy).`, 'warning');
     } else {
       const missingSelected = state.chapters.filter((c) => c.selected && !state.downloadedChapters.has(c.chapterNumber));
       if (missingSelected.length > 0) {
         selectedChapters = missingSelected;
+        const alreadyCount = state.chapters.filter((c) => c.selected && state.downloadedChapters.has(c.chapterNumber)).length;
+        if (alreadyCount > 0) {
+          appendLog(`ℹ️ Chế độ tải tiếp: Đang tải ${missingSelected.length} chương còn thiếu. Toàn bộ ${state.downloadedChapters.size} chương đã tải trước đó được bảo lưu nguyên vẹn (không ghi đè).`, 'info');
+        } else {
+          appendLog(`ℹ️ Đang tải ${missingSelected.length} chương còn thiếu...`, 'info');
+        }
       } else {
         const alreadyDownloadedSelected = state.chapters.filter((c) => c.selected);
         if (alreadyDownloadedSelected.length > 0) {
@@ -2899,6 +2958,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           const ok = confirm(`Các chương bạn chọn (${chNums}${extra}) đã có trong bộ nhớ đã lưu.\n\nBạn có muốn CRAWL LẠI và GHI ĐÈ nội dung mới cho các chương này không?`);
           if (ok) {
             selectedChapters = alreadyDownloadedSelected;
+            appendLog(`🔄 Xác nhận cào lại và ghi đè ${selectedChapters.length} chương...`, 'warning');
           } else {
             return;
           }
@@ -2995,7 +3055,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           updateRecoveryControls();
           updateProgressUI(
             state.downloadedChapters.size,
-            state.chapters.filter(ch => ch.selected || state.downloadedChapters.has(ch.chapterNumber)).length,
+            state.chapters.length || state.chapters.filter(ch => ch.selected || state.downloadedChapters.has(ch.chapterNumber)).length,
             p.failed,
             p.speed,
             p.eta,
@@ -3026,6 +3086,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         },
         onChapterComplete: async ({ chapter, result }) => {
           state.downloadedChapters.set(chapter.chapterNumber, result);
+          const chIdx = (state.chapters || []).findIndex(c => Number(c.chapterNumber) === Number(chapter.chapterNumber));
+          if (chIdx !== -1) {
+            state.chapters[chIdx].selected = false;
+            const chBox = document.getElementById(`ch-check-${chIdx}`);
+            if (chBox) chBox.checked = false;
+          }
           showDownloadedChapters();
           if (btnExport) btnExport.disabled = false;
           if (btnAddToLibrary) btnAddToLibrary.disabled = false;
