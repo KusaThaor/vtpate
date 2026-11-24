@@ -88,8 +88,23 @@ class SessionManager {
       return false;
     }
 
+    let serialized = null;
+    try {
+      serialized = JSON.parse(JSON.stringify(checkpointData, (key, value) => {
+        // Prevent binary buffer objects from being turned into broken empty objects {}
+        if (value && typeof value === 'object') {
+          if (typeof ArrayBuffer !== 'undefined' && value instanceof ArrayBuffer) return undefined;
+          if (typeof Uint8Array !== 'undefined' && value instanceof Uint8Array) return undefined;
+          if (typeof Blob !== 'undefined' && value instanceof Blob) return undefined;
+        }
+        return value;
+      }));
+    } catch (_) {
+      serialized = { ...checkpointData };
+    }
+
     const payload = {
-      ...JSON.parse(JSON.stringify(checkpointData)),
+      ...serialized,
       updatedAt: Date.now()
     };
 

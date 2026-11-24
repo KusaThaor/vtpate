@@ -427,17 +427,22 @@
         navLiItems += `      <li><a href="${hrefPath}">${chapterTitle}</a></li>\n`;
       }
 
-      // Copy any new images
-      const newImages = newFiles.filter(f => f.startsWith('OEBPS/Images/') || f.startsWith('Images/'));
+      // Copy any new images (support OEBPS/images/, OEBPS/Images/, Images/, images/)
+      const newImages = newFiles.filter(f => /^OEBPS\/images\//i.test(f) || /^images\//i.test(f));
       for (const imgPath of newImages) {
         if (!prevZip.file(imgPath)) {
-          const imgData = await newZip.file(imgPath).async('uint8array');
-          prevZip.file(imgPath, imgData);
-          const imgFilename = imgPath.split('/').pop();
-          const imgId = `img_${imgFilename.replace(/[^a-zA-Z0-9]/g, '_')}`;
-          const ext = imgFilename.split('.').pop().toLowerCase();
-          const mime = ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : 'image/jpeg');
-          manifestItems += `    <item id="${imgId}" href="${imgPath.replace(/^OEBPS\//, '')}" media-type="${mime}"/>\n`;
+          const rawZipFile = newZip.file(imgPath);
+          if (rawZipFile) {
+            const imgData = await rawZipFile.async('uint8array');
+            if (imgData && imgData.length > 0) {
+              prevZip.file(imgPath, imgData);
+              const imgFilename = imgPath.split('/').pop();
+              const imgId = `img_${imgFilename.replace(/[^a-zA-Z0-9]/g, '_')}`;
+              const ext = imgFilename.split('.').pop().toLowerCase();
+              const mime = ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : (ext === 'svg' ? 'image/svg+xml' : (ext === 'gif' ? 'image/gif' : 'image/jpeg')));
+              manifestItems += `    <item id="${imgId}" href="${imgPath.replace(/^OEBPS\//i, '')}" media-type="${mime}"/>\n`;
+            }
+          }
         }
       }
 

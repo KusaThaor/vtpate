@@ -246,6 +246,87 @@
     });
   }
 
+  var TRANSPARENT_FALLBACK_IMAGES = {
+    webp: 'UklGRkAAAABXRUJQVlA4IDQAAADwAQCdASoBAAEAAQAcJaACdLoB+AA/v28W/wAA',
+    png: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    gif: 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    jpg: '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'
+  };
+
+  function base64ToUint8(base64Str) {
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(base64Str.replace(/^data:[^;]+;base64,/, ''), 'base64');
+    }
+    var clean = base64Str.replace(/^data:[^;]+;base64,/, '');
+    var binary = atob(clean);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  }
+
+  async function resolveValidImageData(img, filename) {
+    var raw = img ? (img.dataBlob || img.dataBuffer || img.data || img.dataBase64) : null;
+
+    // 1. If it's already a valid binary type directly supported by JSZip
+    if (raw) {
+      if (typeof Uint8Array !== 'undefined' && raw instanceof Uint8Array) return raw;
+      if (typeof ArrayBuffer !== 'undefined' && raw instanceof ArrayBuffer) return raw;
+      if (typeof Blob !== 'undefined' && raw instanceof Blob) return raw;
+      if (typeof Buffer !== 'undefined' && Buffer.isBuffer(raw)) return raw;
+
+      // 2. Base64 string or data URL
+      if (typeof raw === 'string') {
+        if (raw.indexOf('data:') === 0 || raw.length > 50) {
+          try {
+            return base64ToUint8(raw);
+          } catch (_) {
+            return raw;
+          }
+        }
+        return raw;
+      }
+
+      // 3. Serialized typed array object from JSON stringify: { "0": 255, "1": 216, ... }
+      if (typeof raw === 'object' && raw !== null) {
+        if (raw.type === 'Buffer' && Array.isArray(raw.data)) {
+          return new Uint8Array(raw.data);
+        }
+        var keys = Object.keys(raw);
+        if (keys.length > 0 && !isNaN(keys[0])) {
+          var u8 = new Uint8Array(keys.length);
+          for (var idx = 0; idx < keys.length; idx++) {
+            u8[idx] = raw[idx] || 0;
+          }
+          return u8;
+        }
+      }
+    }
+
+    // 4. If raw is empty object {} or null, but img has an online URL, try re-fetching
+    if (img && img.url && typeof fetch === 'function' && /^https?:\/\//i.test(img.url)) {
+      try {
+        var res = await fetch(img.url, { credentials: 'include' });
+        if (res.ok) {
+          var ab = await res.arrayBuffer();
+          if (ab && ab.byteLength > 0) {
+            return new Uint8Array(ab);
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 5. Fallback: Generate a valid 1x1 transparent image so JSZip never crashes and EPUB is 100% compliant
+    var ext = (filename || '').split('.').pop().toLowerCase();
+    if (ext === 'webp') return base64ToUint8(TRANSPARENT_FALLBACK_IMAGES.webp);
+    if (ext === 'png') return base64ToUint8(TRANSPARENT_FALLBACK_IMAGES.png);
+    if (ext === 'gif') return base64ToUint8(TRANSPARENT_FALLBACK_IMAGES.gif);
+    if (ext === 'svg') return TRANSPARENT_FALLBACK_IMAGES.svg;
+    return base64ToUint8(TRANSPARENT_FALLBACK_IMAGES.jpg);
+  }
+
   /**
    * Packages novel metadata, chapters, and assets into standard IDPF OCF/OPS EPUB
    * @param {Object} metadata
@@ -332,11 +413,14 @@
     }
 
     // Cover image embedding
-    var coverData = meta.coverBlob || meta.coverBuffer || meta.coverData;
-    if (coverData) {
+    var coverData = meta.coverBlob || meta.coverBuffer || meta.coverData || meta.coverBase64;
+    if (coverData || meta.coverUrl) {
       var coverFilename = meta.coverFilename || 'cover.jpg';
       meta.coverFilename = coverFilename;
-      zip.file('OEBPS/images/' + coverFilename, coverData);
+      var finalCoverData = await resolveValidImageData({ dataBlob: coverData, url: meta.coverUrl }, coverFilename);
+      if (finalCoverData) {
+        zip.file('OEBPS/images/' + coverFilename, finalCoverData);
+      }
     }
 
     // Custom Font / Obfuscated Font embedding
@@ -369,12 +453,12 @@
       if (ch.images && Array.isArray(ch.images)) {
         for (var k = 0; k < ch.images.length; k++) {
           var img = ch.images[k];
-          var imgData = img.dataBlob || img.dataBuffer || img.data;
           var imgFilename = img.filename || ('img_' + (allImages.length + 1) + '.jpg');
           img.filename = imgFilename;
           allImages.push(img);
-          if (imgData) {
-            zip.file('OEBPS/images/' + imgFilename, imgData);
+          var finalImgData = await resolveValidImageData(img, imgFilename);
+          if (finalImgData) {
+            zip.file('OEBPS/images/' + imgFilename, finalImgData);
           }
         }
       }

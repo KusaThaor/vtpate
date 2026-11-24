@@ -712,6 +712,7 @@ class CrawlEngine {
 
       let mimeType = 'image/jpeg';
       let blobData = null;
+      let base64Data = null;
       try {
         if (typeof fetch === 'function') {
           const res = await fetch(item.src, { credentials: 'include' });
@@ -721,6 +722,19 @@ class CrawlEngine {
             if (typeof res.arrayBuffer === 'function') {
               const ab = await res.arrayBuffer();
               blobData = typeof Buffer !== 'undefined' ? Buffer.from(ab) : ab;
+              try {
+                if (typeof Buffer !== 'undefined') {
+                  base64Data = Buffer.from(ab).toString('base64');
+                } else if (typeof btoa !== 'undefined') {
+                  const bytes = new Uint8Array(ab);
+                  let binary = '';
+                  const bLen = bytes.byteLength;
+                  for (let b = 0; b < bLen; b++) {
+                    binary += String.fromCharCode(bytes[b]);
+                  }
+                  base64Data = btoa(binary);
+                }
+              } catch (_) {}
             } else if (typeof res.buffer === 'function') {
               blobData = await res.buffer();
             } else if (typeof res.blob === 'function') {
@@ -742,7 +756,8 @@ class CrawlEngine {
         url: item.src,
         filename: filename,
         mimeType: mimeType,
-        dataBlob: blobData
+        dataBlob: blobData,
+        dataBase64: base64Data
       };
       chapter.images.push(imgEntry);
 

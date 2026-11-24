@@ -229,6 +229,76 @@ async function runTests() {
     console.log('   getPlaceholderOption is defined and accessible to saveCurrentCrawledToLibrary without ReferenceError!');
   }
 
+  // Test 9: Robustness against broken image data types (e.g. OEBPS/images/ch109_img_1.webp with {})
+  {
+    console.log('Test 9: Verification of image data normalization and fallback in EpubPacker & LibraryManager');
+    const EpubPacker = require('../../src/epub/epub-packer.js');
+    const chaptersWithBrokenImages = [
+      {
+        id: 'ch-108',
+        chapterNumber: 108,
+        title: 'Chương 108: Bình thường',
+        contentHtml: '<p>Nội dung chương 108</p>'
+      },
+      {
+        id: 'ch-109',
+        chapterNumber: 109,
+        title: 'Chương 109: Có ảnh lỗi type {}',
+        contentHtml: '<p>Nội dung chương 109 <img src="../images/ch109_img_1.webp"/></p>',
+        images: [
+          {
+            id: 'img_ch109_1',
+            filename: 'ch109_img_1.webp',
+            mimeType: 'image/webp',
+            dataBlob: {}, // Broken empty object from JSON serialization!
+            url: 'https://example.com/broken_ch109_img.webp'
+          },
+          {
+            id: 'img_ch109_2',
+            filename: 'ch109_img_2.png',
+            mimeType: 'image/png',
+            dataBlob: { 0: 137, 1: 80, 2: 78, 3: 71 }, // Serialized Uint8Array object
+            url: 'https://example.com/img2.png'
+          }
+        ]
+      }
+    ];
+
+    const metadata = {
+      title: 'Truyện Test Ảnh Ch109',
+      author: 'Tác giả',
+      description: 'Mô tả',
+      coverFilename: 'cover.jpg',
+      coverBlob: {} // Also test broken cover blob {}
+    };
+
+    // Packing EPUB must not crash with JSZip error: Can't read the data of 'OEBPS/images/ch109_img_1.webp'
+    const epubBlob = await EpubPacker.createEpub(metadata, chaptersWithBrokenImages, { includeInlineImages: true });
+    assert(epubBlob, 'EpubPacker must successfully return epubBlob even with broken image objects');
+
+    // Inspect zip contents
+    const zip = await JSZip.loadAsync(epubBlob);
+    const webpFile = zip.file('OEBPS/images/ch109_img_1.webp');
+    assert(webpFile, 'OEBPS/images/ch109_img_1.webp must be present in EPUB');
+    const webpBytes = await webpFile.async('uint8array');
+    assert(webpBytes.length > 0, 'OEBPS/images/ch109_img_1.webp must contain valid fallback image bytes');
+
+    // Now verify saving to library with this EPUB succeeds
+    const mockStorage = new MemoryStorage();
+    const libManager = new LibraryManager({ storage: mockStorage });
+    await libManager.saveToLibrary({
+      url: 'https://example.com/story-ch109',
+      filename: 'ch109_test.epub',
+      title: 'Truyện Test Ảnh Ch109',
+      author: 'Tác giả',
+      epubBlob
+    });
+
+    const libraryIds = await libManager.getStorageIds();
+    assert.strictEqual(libraryIds.length, 1, 'Library must contain 1 novel after saving');
+    console.log('   EpubPacker & LibraryManager gracefully handled broken image objects and generated valid EPUB without JSZip crash!');
+  }
+
   console.log('\nAll WebToEpub temporary library and live settings tests PASSED successfully!\n');
 }
 

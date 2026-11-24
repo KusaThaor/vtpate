@@ -3612,6 +3612,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const packerOptions = {
         splitSize: 0,
+        includeInlineImages: includeInlineImagesCheckbox ? Boolean(includeInlineImagesCheckbox.checked) : true,
         customFont: state.customFont && state.customFont.enabled ? state.customFont : null,
         emptyPlaceholder: typeof getPlaceholderOption === 'function' ? getPlaceholderOption() : (emptyChapterPlaceholderInput?.value?.trim() || '<p>pass</p>')
       };
